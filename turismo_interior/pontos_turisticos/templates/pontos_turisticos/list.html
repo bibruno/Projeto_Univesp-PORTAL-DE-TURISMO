@@ -4,30 +4,32 @@
 
 {% block content %}
 <div class="row mb-4">
-    <div class="col-md-6">
+    <div class="col-12">
         <div class="card">
             <div class="card-body">
                 <h5 class="card-title">Filtros</h5>
                 <form id="filter-form" method="get">
-                    <div class="mb-3">
-                        <label for="city" class="form-label">Cidade</label>
-                        <select class="form-select" id="city" name="city">
-                            {% for city in cities %}
-                                <option value="{{ city }}" {% if city == current_city %}selected{% endif %}>
-                                    {{ city }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="type" class="form-label">Tipo</label>
-                        <select class="form-select" id="type" name="type">
-                            {% for type in types %}
-                                <option value="{{ type }}" {% if type == current_type %}selected{% endif %}>
-                                    {{ type }}
-                                </option>
-                            {% endfor %}
-                        </select>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="city" class="form-label">Cidade</label>
+                                <select class="form-select" id="city" name="city">
+                                    {% for city in cities %}
+                                        <option value="{{ city }}" {% if city == current_city %}selected{% endif %}>
+                                            {{ city }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="type" class="form-label">Tipo</label>
+                                <select class="form-select" id="type" name="type">
+                                    <option value="Todos">Todos</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -97,17 +99,77 @@
 
 {% block extra_js %}
 <script>
+// Função para debounce
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Função para atualizar os tipos
+function updateTypes(city) {
+    const typeSelect = document.getElementById('type');
+    
+    // Limpa o select de tipos
+    typeSelect.innerHTML = '<option value="Todos">Todos</option>';
+    
+    // Busca os tipos da cidade selecionada
+    fetch(`/api/types-for-city/?city=${encodeURIComponent(city)}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Erro ao buscar tipos');
+            }
+            return response.json();
+        })
+        .then(types => {
+            console.log('Tipos recebidos:', types); // Debug
+            
+            // Adiciona os tipos ao select
+            types.forEach(type => {
+                if (type) { // Garante que o tipo não é null ou undefined
+                    const option = document.createElement('option');
+                    option.value = type;
+                    option.textContent = type;
+                    typeSelect.appendChild(option);
+                }
+            });
+            
+            // Seleciona o tipo atual se existir
+            const currentType = new URLSearchParams(window.location.search).get('type');
+            if (currentType) {
+                typeSelect.value = currentType;
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+        });
+}
+
+// Adiciona o evento de change com debounce
+document.getElementById('city').addEventListener('change', debounce(function() {
+    const city = this.value;
+    updateTypes(city);
+    // Submete o formulário após um pequeno delay para garantir que os tipos foram atualizados
+    setTimeout(() => {
+        document.getElementById('filter-form').submit();
+    }, 100);
+}, 300));
+
+// Adiciona o evento de change para o tipo
+document.getElementById('type').addEventListener('change', function() {
+    document.getElementById('filter-form').submit();
+});
+
+// Atualiza os tipos quando a página carrega (apenas uma vez)
 document.addEventListener('DOMContentLoaded', function() {
     const citySelect = document.getElementById('city');
-    const typeSelect = document.getElementById('type');
-    const filterForm = document.getElementById('filter-form');
-
-    function updateFilters() {
-        filterForm.submit();
-    }
-
-    citySelect.addEventListener('change', updateFilters);
-    typeSelect.addEventListener('change', updateFilters);
+    updateTypes(citySelect.value);
 });
 </script>
 {% endblock %}

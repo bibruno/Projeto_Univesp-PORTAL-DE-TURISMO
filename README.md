@@ -1,28 +1,59 @@
 # Portal de Turismo do Interior de São Paulo
 
-Este projeto é um portal de turismo que lista pontos turísticos do interior do estado de São Paulo, com informações detalhadas sobre cada local, incluindo avaliações, tipos de estabelecimento e localização.
+Um portal web desenvolvido em Django para explorar pontos turísticos do interior de São Paulo, com filtros dinâmicos, estatísticas e integração com Google Maps.
 
-## Funcionalidades
+## 🚀 Funcionalidades
 
-- Listagem de pontos turísticos com paginação
-- Filtros por cidade e tipo de estabelecimento
-- Estatísticas gerais sobre os pontos turísticos
-- Integração com Google Maps
-- Interface responsiva e moderna
+- **Listagem de Pontos Turísticos**
+  - Visualização em cards com informações detalhadas
+  - Paginação (9 itens por página)
+  - Filtros dinâmicos por cidade e tipo
+  - Integração com Google Maps
 
-## Requisitos
+- **Filtros Inteligentes**
+  - Filtro por cidade
+  - Filtro por tipo que se atualiza automaticamente baseado na cidade selecionada
+  - Manutenção dos filtros durante a navegação
 
-- Python 3.8 ou superior
-- Django 5.2
-- Bootstrap 5.3
-- SQLite3
+- **Estatísticas**
+  - Total de pontos turísticos
+  - Total de cidades
+  - Média de avaliações
+  - Top 10 cidades com mais pontos turísticos
+  - Distribuição por tipo
 
-## Instalação
+- **Interface Responsiva**
+  - Design moderno com Bootstrap
+  - Cards com efeito hover
+  - Badges para tipos
+  - Layout adaptável para diferentes dispositivos
+
+## 🛠️ Tecnologias Utilizadas
+
+- **Backend**
+  - Django 5.2
+  - Python 3.x
+  - SQLite (banco de dados)
+
+- **Frontend**
+  - HTML5
+  - CSS3
+  - JavaScript
+  - Bootstrap 5.3
+  - Bootstrap Icons
+
+## 📋 Pré-requisitos
+
+- Python 3.x
+- pip (gerenciador de pacotes Python)
+- Git (opcional)
+
+## 🔧 Instalação
 
 1. Clone o repositório:
 ```bash
-git clone https://github.com/bibruno/Projeto_Univesp-PORTAL-DE-TURISMO.git
-cd Projeto_Univesp-PORTAL-DE-TURISMO
+git clone https://github.com/seu-usuario/turismo-interior.git
+cd turismo-interior
 ```
 
 2. Crie e ative um ambiente virtual:
@@ -44,48 +75,91 @@ pip install -r requirements.txt
 python manage.py migrate
 ```
 
-5. Importe os dados dos pontos turísticos:
+5. Importe os dados do CSV:
 ```bash
-python import_data_simple.py
+python manage.py import_spots caminho/para/seu/arquivo.csv
 ```
 
-6. Inicie o servidor de desenvolvimento:
+6. Popule a tabela de tipos por cidade:
+```bash
+python manage.py populate_city_types
+```
+
+7. Inicie o servidor:
 ```bash
 python manage.py runserver
 ```
 
-7. Acesse a aplicação em http://localhost:8000/
-
-## Estrutura do Projeto
+## 📊 Estrutura do Projeto
 
 ```
-Projeto_Univesp-PORTAL-DE-TURISMO/
-├── turismo_interior/          # Projeto Django principal
-│   ├── pontos_turisticos/     # App de pontos turísticos
-│   │   ├── migrations/        # Migrações do banco de dados
-│   │   ├── templates/         # Templates HTML
-│   │   ├── models.py          # Modelos de dados
-│   │   ├── views.py           # Views da aplicação
-│   │   └── urls.py            # URLs da aplicação
-│   ├── settings.py            # Configurações do projeto
-│   └── urls.py                # URLs do projeto
-├── Banco/                     # Dados dos pontos turísticos
-├── import_data_simple.py      # Script de importação
-├── manage.py                  # Script de gerenciamento Django
-├── requirements.txt           # Dependências do projeto
-└── README.md                  # Este arquivo
+turismo_interior/
+├── pontos_turisticos/
+│   ├── migrations/
+│   ├── templates/
+│   │   ├── base.html
+│   │   ├── list.html
+│   │   └── statistics.html
+│   ├── management/
+│   │   └── commands/
+│   │       ├── import_spots.py
+│   │       └── populate_city_types.py
+│   ├── models.py
+│   ├── views.py
+│   └── urls.py
+├── turismo_interior/
+│   ├── settings.py
+│   ├── urls.py
+│   └── wsgi.py
+└── manage.py
 ```
 
-## Contribuição
+## 🎯 Comandos Disponíveis
 
-Contribuições são bem-vindas! Por favor, siga estas etapas:
+- `import_spots`: Importa pontos turísticos de um arquivo CSV
+- `populate_city_types`: Popula a tabela de tipos por cidade
+- `list_cities_types`: Lista todas as cidades e seus respectivos tipos
 
-1. Fork o projeto
+## 🔍 Como Usar
+
+1. Acesse a página inicial em `http://localhost:8000/`
+2. Use os filtros para encontrar pontos turísticos:
+   - Selecione uma cidade
+   - Escolha um tipo (a lista se atualiza baseado na cidade)
+3. Navegue entre as páginas usando a paginação
+4. Clique em "Ver no Maps" para ver a localização no Google Maps
+5. Acesse as estatísticas em `http://localhost:8000/statistics/`
+
+## 📝 Estrutura do CSV
+
+O arquivo CSV deve conter as seguintes colunas:
+- Nome
+- Endereço
+- Cidade
+- Avaliação
+- Tipos (separados por vírgula)
+- Latitude
+- Longitude
+- Place_ID
+
+## 🤝 Contribuindo
+
+1. Faça um fork do projeto
 2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
 3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
 4. Push para a branch (`git push origin feature/AmazingFeature`)
 5. Abra um Pull Request
 
-## Licença
+## 📄 Licença
 
-Este projeto está licenciado sob a licença MIT - veja o arquivo [LICENSE](LICENSE) para detalhes. 
+Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+
+## ✨ Melhorias Futuras
+
+- [ ] Implementar autenticação de usuários
+- [ ] Adicionar sistema de avaliações
+- [ ] Criar área administrativa
+- [ ] Implementar busca por texto
+- [ ] Adicionar mais estatísticas e gráficos
+- [ ] Implementar cache para melhor performance
+- [ ] Adicionar testes automatizados 
