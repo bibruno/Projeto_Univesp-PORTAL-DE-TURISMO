@@ -16,8 +16,21 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+import logging
+
+# Configuração de logging
+logger = logging.getLogger(__name__)
+
+# Debug do carregamento de URLs
+print("Carregando URLs do projeto turismo_interior")
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('pontos_turisticos.urls')),
 ]
+
+# Lista todas as URLs para debug
+for pattern in urlpatterns:
+    print(f"URL registrada: {pattern.pattern}")
+
+print("URLs carregadas com sucesso")

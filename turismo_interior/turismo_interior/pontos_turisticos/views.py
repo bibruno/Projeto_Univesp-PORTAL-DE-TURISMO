@@ -4,6 +4,10 @@ from django.db.models import Count, Avg
 from .models import TouristSpot, Type, CityType
 from django.core.paginator import Paginator
 from django.http import JsonResponse
+import logging
+
+# Configuração de logging
+logger = logging.getLogger(__name__)
 
 # Create your views here.
 
@@ -114,19 +118,38 @@ def list_spots(request):
 
 def get_types_for_city(request):
     city = request.GET.get('city', '')
-    print(f"Buscando tipos para a cidade: {city}")  # Debug
+    logger.debug(f"API chamada com cidade: {city}")
+    print(f"API chamada - Buscando tipos para a cidade: {city}")  # Debug
+    
+    response_data = {
+        'request_path': request.path,
+        'query_params': dict(request.GET),
+        'city_param': city
+    }
     
     if city == 'Todas':
         # Se for 'Todas', retorna todos os tipos disponíveis 
         types = Type.objects.values_list('name', flat=True).distinct()
+        response_data['query_type'] = 'all_types'
     else:
         # Para uma cidade específica, busca os tipos dos pontos turísticos desta cidade
-        types = Type.objects.filter(
+        queryset = Type.objects.filter(
             touristspot__city=city
-        ).values_list('name', flat=True).distinct()
+        )
+        # Log da query SQL
+        print(f"Query SQL: {str(queryset.query)}")
+        types = queryset.values_list('name', flat=True).distinct()
+        response_data['query_type'] = 'city_specific'
+        
+        # Verifica se existem pontos turísticos na cidade
+        spot_count = TouristSpot.objects.filter(city=city).count()
+        response_data['spot_count'] = spot_count
+        print(f"Pontos turísticos na cidade {city}: {spot_count}")
     
     # Converte para lista e remove valores None
     types_list = list(filter(None, types))
-    print(f"Tipos encontrados: {types_list}")  # Debug
+    response_data['types_found'] = types_list
+    response_data['types_count'] = len(types_list)
+    print(f"Tipos encontrados ({len(types_list)}): {types_list}")  # Debug
     
     return JsonResponse(types_list, safe=False)

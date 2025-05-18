@@ -37,6 +37,18 @@
     </div>
 </div>
 
+<!-- Debug Info -->
+<div class="row mb-4" id="debug-info" style="display: none;">
+    <div class="col-12">
+        <div class="card bg-light">
+            <div class="card-body">
+                <h5 class="card-title">Informações de Debug</h5>
+                <div id="debug-content"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row">
     {% for spot in spots %}
     <div class="col-md-4 mb-4">
@@ -99,6 +111,20 @@
 
 {% block extra_js %}
 <script>
+// Função para debug
+function logDebug(message, data) {
+    console.log(message, data);
+    
+    // Mostra o painel de debug
+    document.getElementById('debug-info').style.display = 'block';
+    
+    // Adiciona a mensagem ao painel
+    const debugContent = document.getElementById('debug-content');
+    const entry = document.createElement('div');
+    entry.innerHTML = `<strong>${message}</strong>: ${JSON.stringify(data)}`;
+    debugContent.appendChild(entry);
+}
+
 // Função para debounce
 function debounce(func, wait) {
     let timeout;
@@ -119,16 +145,23 @@ function updateTypes(city) {
     // Limpa o select de tipos
     typeSelect.innerHTML = '<option value="Todos">Todos</option>';
     
+    // Log da cidade selecionada
+    logDebug('Cidade selecionada', city);
+    
+    const apiUrl = `/api/types-for-city/?city=${encodeURIComponent(city)}`;
+    logDebug('Chamando API', apiUrl);
+    
     // Busca os tipos da cidade selecionada
-    fetch(`/api/types-for-city/?city=${encodeURIComponent(city)}`)
+    fetch(apiUrl)
         .then(response => {
+            logDebug('Status da resposta', response.status);
             if (!response.ok) {
-                throw new Error('Erro ao buscar tipos');
+                throw new Error(`Erro ao buscar tipos: ${response.status}`);
             }
             return response.json();
         })
         .then(types => {
-            console.log('Tipos recebidos:', types); // Debug
+            logDebug('Tipos recebidos', types);
             
             // Adiciona os tipos ao select
             types.forEach(type => {
@@ -140,13 +173,18 @@ function updateTypes(city) {
                 }
             });
             
+            // Conta quantos tipos foram adicionados
+            logDebug('Total de tipos adicionados', typeSelect.options.length - 1);
+            
             // Seleciona o tipo atual se existir
             const currentType = new URLSearchParams(window.location.search).get('type');
             if (currentType) {
                 typeSelect.value = currentType;
+                logDebug('Tipo selecionado', currentType);
             }
         })
         .catch(error => {
+            logDebug('Erro na chamada', error.message);
             console.error('Erro:', error);
         });
 }
@@ -158,7 +196,7 @@ document.getElementById('city').addEventListener('change', debounce(function() {
     // Submete o formulário após um pequeno delay para garantir que os tipos foram atualizados
     setTimeout(() => {
         document.getElementById('filter-form').submit();
-    }, 100);
+    }, 500); // Aumentado para 500ms para dar tempo de debug
 }, 300));
 
 // Adiciona o evento de change para o tipo
@@ -169,7 +207,23 @@ document.getElementById('type').addEventListener('change', function() {
 // Atualiza os tipos quando a página carrega (apenas uma vez)
 document.addEventListener('DOMContentLoaded', function() {
     const citySelect = document.getElementById('city');
+    logDebug('Página carregada, cidade inicial', citySelect.value);
     updateTypes(citySelect.value);
+    
+    // Adiciona botão para mostrar/esconder debug
+    const debugToggle = document.createElement('button');
+    debugToggle.textContent = 'Mostrar/Esconder Debug';
+    debugToggle.className = 'btn btn-sm btn-secondary mt-2';
+    debugToggle.onclick = function(e) {
+        e.preventDefault();
+        const debugInfo = document.getElementById('debug-info');
+        if (debugInfo.style.display === 'none') {
+            debugInfo.style.display = 'block';
+        } else {
+            debugInfo.style.display = 'none';
+        }
+    };
+    document.querySelector('.card-body').appendChild(debugToggle);
 });
 </script>
 {% endblock %}
