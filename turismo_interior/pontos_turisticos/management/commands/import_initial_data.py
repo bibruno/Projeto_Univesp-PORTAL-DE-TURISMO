@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from pontos_turisticos.models import TouristSpot, City, CityType
+from pontos_turisticos.models import TouristSpot
 import json
 import os
 
@@ -10,44 +10,6 @@ class Command(BaseCommand):
         try:
             self.stdout.write('Starting data import...')
             
-            # Criar tipos de cidade
-            city_types = [
-                {'name': 'Capital'},
-                {'name': 'Interior'},
-                {'name': 'Litoral'},
-                {'name': 'Serra'},
-            ]
-            
-            for type_data in city_types:
-                obj, created = CityType.objects.get_or_create(name=type_data['name'])
-                if created:
-                    self.stdout.write(f'Created city type: {type_data["name"]}')
-                else:
-                    self.stdout.write(f'City type already exists: {type_data["name"]}')
-
-            # Criar cidades
-            cities = [
-                {'name': 'São Paulo', 'type': 'Capital'},
-                {'name': 'Campinas', 'type': 'Interior'},
-                {'name': 'Santos', 'type': 'Litoral'},
-                {'name': 'Campos do Jordão', 'type': 'Serra'},
-            ]
-            
-            for city_data in cities:
-                try:
-                    city_type = CityType.objects.get(name=city_data['type'])
-                    obj, created = City.objects.get_or_create(
-                        name=city_data['name'],
-                        defaults={'type': city_type}
-                    )
-                    if created:
-                        self.stdout.write(f'Created city: {city_data["name"]}')
-                    else:
-                        self.stdout.write(f'City already exists: {city_data["name"]}')
-                except CityType.DoesNotExist:
-                    self.stdout.write(self.style.ERROR(f'City type not found: {city_data["type"]}'))
-                    continue
-
             # Criar pontos turísticos
             spots = [
                 {
@@ -81,24 +43,19 @@ class Command(BaseCommand):
             ]
 
             for spot_data in spots:
-                try:
-                    city = City.objects.get(name=spot_data['city'])
-                    obj, created = TouristSpot.objects.get_or_create(
-                        name=spot_data['name'],
-                        defaults={
-                            'description': spot_data['description'],
-                            'city': city,
-                            'address': spot_data['address'],
-                            'image': spot_data['image']
-                        }
-                    )
-                    if created:
-                        self.stdout.write(f'Created tourist spot: {spot_data["name"]}')
-                    else:
-                        self.stdout.write(f'Tourist spot already exists: {spot_data["name"]}')
-                except City.DoesNotExist:
-                    self.stdout.write(self.style.ERROR(f'City not found: {spot_data["city"]}'))
-                    continue
+                obj, created = TouristSpot.objects.get_or_create(
+                    name=spot_data['name'],
+                    defaults={
+                        'description': spot_data['description'],
+                        'city': spot_data['city'],
+                        'address': spot_data['address'],
+                        'image': spot_data['image']
+                    }
+                )
+                if created:
+                    self.stdout.write(f'Created tourist spot: {spot_data["name"]}')
+                else:
+                    self.stdout.write(f'Tourist spot already exists: {spot_data["name"]}')
 
             self.stdout.write(self.style.SUCCESS('Initial data imported successfully'))
             
