@@ -3,8 +3,8 @@ services:
     name: turismo-interior
     env: python
     buildCommand: |
-      cd turismo_interior
       pip install -r requirements.txt
+      cd turismo_interior
       python manage.py collectstatic --noinput
       python manage.py migrate
       python manage.py create_superuser
