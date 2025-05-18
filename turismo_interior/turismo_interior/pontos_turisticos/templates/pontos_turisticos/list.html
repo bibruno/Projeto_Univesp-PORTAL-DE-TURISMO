@@ -121,7 +121,7 @@ function updateTypes(city) {
         return;
     }
     
-    fetch(`/get_types_for_city/?city=${encodeURIComponent(city)}`)
+    fetch(`/api/types-for-city/?city=${encodeURIComponent(city)}`)
         .then(response => response.json())
         .then(types => {
             types.forEach(type => {
