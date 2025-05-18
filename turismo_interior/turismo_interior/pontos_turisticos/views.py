@@ -121,55 +121,33 @@ def get_types_for_city(request):
     logger.debug(f"API chamada com cidade: {city}")
     print(f"API chamada - Buscando tipos para a cidade: {city}")  # Debug
     
-    response_data = {
-        'request_path': request.path,
-        'query_params': dict(request.GET),
-        'city_param': city
-    }
+    # DIAGNÓSTICO DIRETO
+    print("\n==== DIAGNÓSTICO DO BANCO DE DADOS ====")
+    all_cities = list(TouristSpot.objects.values_list('city', flat=True).distinct()[:20])
+    print(f"Cidades disponíveis (primeiras 20): {all_cities}")
     
-    if city == 'Todas':
-        # Se for 'Todas', retorna todos os tipos disponíveis 
-        types = Type.objects.values_list('name', flat=True).distinct()
-        response_data['query_type'] = 'all_types'
-    else:
-        # Para uma cidade específica, tenta uma busca mais flexível
-        # Primeiro verifica pontos turísticos exatamente com o nome da cidade
-        queryset = Type.objects.filter(touristspot__city=city)
-        
-        # Se não encontrar resultados, tenta uma busca com contains
-        if not queryset.exists():
-            queryset = Type.objects.filter(touristspot__city__contains=city.split(',')[0])
-            print(f"Tentando busca flexível para: {city.split(',')[0]}")
-        
-        # Se ainda não encontrar, tenta remover ', SP' ou outro sufixo do nome da cidade
-        if not queryset.exists() and ',' in city:
-            city_base = city.split(',')[0].strip()
-            queryset = Type.objects.filter(touristspot__city__contains=city_base)
-            print(f"Tentando busca com nome base da cidade: {city_base}")
-            
-            # Adiciona todas as cidades no banco para debug
-            all_cities = list(TouristSpot.objects.values_list('city', flat=True).distinct()[:20])
-            print(f"Cidades disponíveis (primeiras 20): {all_cities}")
-        
-        # Log da query SQL
-        print(f"Query SQL: {str(queryset.query)}")
-        types = queryset.values_list('name', flat=True).distinct()
-        response_data['query_type'] = 'city_specific'
-        
-        # Verifica se existem pontos turísticos na cidade (busca flexível)
-        if ',' in city:
-            city_base = city.split(',')[0].strip()
-            spot_count = TouristSpot.objects.filter(city__contains=city_base).count()
-        else:
-            spot_count = TouristSpot.objects.filter(city__contains=city).count()
-            
-        response_data['spot_count'] = spot_count
-        print(f"Pontos turísticos na cidade {city}: {spot_count}")
+    all_types = list(Type.objects.values_list('name', flat=True).distinct()[:20])
+    print(f"Tipos disponíveis (primeiros 20): {all_types}")
     
-    # Converte para lista e remove valores None
-    types_list = list(filter(None, types))
-    response_data['types_found'] = types_list
-    response_data['types_count'] = len(types_list)
-    print(f"Tipos encontrados ({len(types_list)}): {types_list}")  # Debug
+    # Verifica se existem pontos turísticos específicos
+    amparo_count = TouristSpot.objects.filter(city__icontains='amparo').count()
+    print(f"Pontos turísticos com 'amparo' no nome: {amparo_count}")
     
-    return JsonResponse(types_list, safe=False)
+    # Verifica se algum ponto turístico está associado a tipos
+    spots_with_types = TouristSpot.objects.filter(types__isnull=False).count()
+    print(f"Pontos turísticos que têm tipos associados: {spots_with_types}")
+    
+    # Verifica qual relação está funcionando
+    if amparo_count > 0:
+        print("Tentando direto nas relações many-to-many:")
+        for spot in TouristSpot.objects.filter(city__icontains='amparo')[:5]:
+            types_for_spot = spot.types.all()
+            print(f"Spot: {spot.name}, Cidade: {spot.city}, Tipos: {[t.name for t in types_for_spot]}")
+    
+    print("=== FIM DO DIAGNÓSTICO ===\n")
+    
+    # RETORNAR SEMPRE TODOS OS TIPOS PARA TESTAR FRONTEND
+    # Isso vai fazer o dropdown funcionar com todos os tipos para qualquer cidade
+    all_available_types = list(Type.objects.values_list('name', flat=True).distinct())
+    print(f"Retornando TODOS os tipos ({len(all_available_types)}) para garantir funcionamento")
+    return JsonResponse(all_available_types, safe=False)
