@@ -36,7 +36,7 @@ class Command(BaseCommand):
             reader = csv.DictReader(csvfile)
             for row in reader:
                 # Limpar e normalizar os tipos
-                types = [t.strip() for t in row['Tipos'].split(',')]
+                types = [t.strip() for t in row.get('Tipos', '').split(',') if t.strip()]
                 type_names.update(types)
                 spots_data.append({
                     'data': row,
@@ -60,28 +60,47 @@ class Command(BaseCommand):
         
         # Criar spots em bulk
         spots = []
+        spots_types = []  # Lista para armazenar os tipos de cada spot
         skipped = 0
+        
         for spot_info in spots_data:
             row = spot_info['data']
             try:
-                place_id = row['Place_ID']
+                place_id = row.get('Place_ID')
+                if not place_id:
+                    self.stdout.write(self.style.WARNING(f'Linha sem Place_ID, pulando: {row}'))
+                    continue
                 
                 # Pular se já existir
                 if place_id in existing_place_ids:
                     skipped += 1
                     continue
                     
+                # Garantindo que dados numéricos são tratados corretamente
+                try:
+                    rating = float(row.get('Avaliação', '0').replace(',', '.'))
+                except ValueError:
+                    rating = 0.0
+                    
+                try:
+                    latitude = row.get('Latitude', '0').replace('.', '').replace(',', '.')
+                    longitude = row.get('Longitude', '0').replace('.', '').replace(',', '.')
+                except Exception:
+                    latitude = '0'
+                    longitude = '0'
+                    
                 spot = TouristSpot(
-                    name=row['Nome'],
-                    address=row['Endereço'],
-                    city=row['Cidade'],
-                    rating=float(row['Avaliação'].replace(',', '.')) if row['Avaliação'] else 0.0,
-                    latitude=row['Latitude'].replace('.', '').replace(',', '.'),
-                    longitude=row['Longitude'].replace('.', '').replace(',', '.'),
+                    name=row.get('Nome', 'Sem nome'),
+                    address=row.get('Endereço', ''),
+                    city=row.get('Cidade', 'Desconhecida'),
+                    rating=rating,
+                    latitude=latitude,
+                    longitude=longitude,
                     place_id=place_id
                 )
                 spots.append(spot)
-            except (ValueError, KeyError) as e:
+                spots_types.append(spot_info['types'])  # Armazenamos os tipos associados a este spot
+            except Exception as e:
                 self.stdout.write(self.style.WARNING(f'Erro ao processar linha: {e}'))
                 continue
         
@@ -94,10 +113,21 @@ class Command(BaseCommand):
         
         # Adicionar tipos aos spots
         spot_count = 0
-        for spot, spot_info in zip(created_spots, spots_data):
-            if spot.id:  # Se o spot foi criado com sucesso
-                types = [type_map[t] for t in spot_info['types'] if t in type_map]
-                spot.types.add(*types)
-                spot_count += 1
+        created_spots_dict = {}
         
+        # Indexar spots criados pelo place_id
+        for spot in created_spots:
+            if spot.place_id:
+                created_spots_dict[spot.place_id] = spot
+        
+        # Para cada spot nos dados originais, adicionar tipos se o spot foi criado
+        for i, spot_info in enumerate(spots_data):
+            place_id = spot_info['data'].get('Place_ID')
+            if place_id and place_id in created_spots_dict:
+                spot = created_spots_dict[place_id]
+                spot_types = [type_map[t] for t in spot_info['types'] if t in type_map]
+                if spot_types:
+                    spot.types.add(*spot_types)
+                    spot_count += 1
+                    
         self.stdout.write(self.style.SUCCESS(f'Importação concluída! {spot_count} pontos turísticos importados.')) 
