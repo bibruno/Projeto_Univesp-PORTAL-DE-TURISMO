@@ -4,13 +4,7 @@
 
 {% block content %}
 <div class="row">
-    <div class="col-12">
-        <h1 class="mb-4">Estatísticas</h1>
-    </div>
-</div>
-
-<div class="row mb-4">
-    <div class="col-md-4">
+    <div class="col-md-4 mb-4">
         <div class="card">
             <div class="card-body">
                 <h5 class="card-title">Total de Pontos Turísticos</h5>
@@ -18,7 +12,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-4 mb-4">
         <div class="card">
             <div class="card-body">
                 <h5 class="card-title">Total de Cidades</h5>
@@ -26,10 +20,10 @@
             </div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-4 mb-4">
         <div class="card">
             <div class="card-body">
-                <h5 class="card-title">Média de Avaliações</h5>
+                <h5 class="card-title">Média de Avaliação</h5>
                 <p class="card-text display-4">{{ avg_rating|floatformat:1 }}</p>
             </div>
         </div>
@@ -37,8 +31,8 @@
 </div>
 
 <div class="row">
-    <div class="col-md-6">
-        <div class="card mb-4">
+    <div class="col-md-6 mb-4">
+        <div class="card">
             <div class="card-body">
                 <h5 class="card-title">Top 10 Cidades</h5>
                 <div class="table-responsive">
@@ -46,7 +40,7 @@
                         <thead>
                             <tr>
                                 <th>Cidade</th>
-                                <th>Quantidade</th>
+                                <th>Pontos Turísticos</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -62,8 +56,8 @@
             </div>
         </div>
     </div>
-    <div class="col-md-6">
-        <div class="card mb-4">
+    <div class="col-md-6 mb-4">
+        <div class="card">
             <div class="card-body">
                 <h5 class="card-title">Distribuição por Tipo</h5>
                 <div class="table-responsive">
