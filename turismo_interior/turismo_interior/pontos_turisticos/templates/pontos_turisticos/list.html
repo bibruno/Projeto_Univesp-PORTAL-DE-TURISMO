@@ -141,6 +141,7 @@ function debounce(func, wait) {
 // Função para atualizar os tipos
 function updateTypes(city) {
     const typeSelect = document.getElementById('type');
+    const currentType = typeSelect.value;  // Guarda o tipo atual
     
     // Limpa o select de tipos
     typeSelect.innerHTML = '<option value="Todos">Todos</option>';
@@ -163,24 +164,34 @@ function updateTypes(city) {
         .then(types => {
             logDebug('Tipos recebidos', types);
             
-            // Adiciona os tipos ao select
-            types.forEach(type => {
-                if (type) { // Garante que o tipo não é null ou undefined
-                    const option = document.createElement('option');
-                    option.value = type;
-                    option.textContent = type;
-                    typeSelect.appendChild(option);
+            if (types && types.length > 0) {
+                // Adiciona os tipos ao select
+                types.forEach(type => {
+                    if (type) { // Garante que o tipo não é null ou undefined
+                        const option = document.createElement('option');
+                        option.value = type;
+                        option.textContent = type;
+                        typeSelect.appendChild(option);
+                    }
+                });
+                
+                // Tenta restaurar o tipo selecionado anteriormente
+                if (currentType && types.includes(currentType)) {
+                    typeSelect.value = currentType;
                 }
-            });
+            } else {
+                logDebug('Nenhum tipo encontrado para esta cidade', city);
+            }
             
             // Conta quantos tipos foram adicionados
             logDebug('Total de tipos adicionados', typeSelect.options.length - 1);
             
-            // Seleciona o tipo atual se existir
-            const currentType = new URLSearchParams(window.location.search).get('type');
-            if (currentType) {
-                typeSelect.value = currentType;
-                logDebug('Tipo selecionado', currentType);
+            // Seleciona o tipo atual se existir nos parâmetros da URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const typeFromUrl = urlParams.get('type');
+            if (typeFromUrl && types.includes(typeFromUrl)) {
+                typeSelect.value = typeFromUrl;
+                logDebug('Tipo selecionado da URL', typeFromUrl);
             }
         })
         .catch(error => {
