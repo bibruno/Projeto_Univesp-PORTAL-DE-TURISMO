@@ -9,6 +9,11 @@ Um portal web desenvolvido em Django para explorar pontos turísticos do interio
    * Paginação (9 itens por página)  
    * Filtros dinâmicos por cidade e tipo  
    * Integração com Google Maps
+* **Sistema de Cache de Tipos por Cidade**
+   * Tabela `CityTypes` para armazenamento eficiente
+   * Atualização automática via comando `update_city_types`
+   * Contagem de pontos turísticos por tipo em cada cidade
+   * Índices otimizados para consulta rápida
 * **Filtros Inteligentes**  
    * Filtro por cidade com suporte a variações de nome (ex: "Cidade" ou "Cidade, SP")
    * Busca case-insensitive para maior flexibilidade
@@ -175,10 +180,15 @@ O sistema de filtros foi aprimorado para lidar com diversos cenários e melhorar
   python manage.py import_spots caminho/do/arquivo.csv
   ```
 
-* **update_city_types**: Atualiza a tabela de tipos por cidade
+* **update_city_types**: Atualiza a tabela de cache de tipos por cidade
   ```bash
   python manage.py update_city_types
   ```
+  Este comando:
+  1. Limpa a tabela `CityTypes` existente
+  2. Obtém todas as cidades do sistema
+  3. Para cada cidade, calcula os tipos e suas contagens
+  4. Cria novos registros otimizados para consulta
 
 ## ⚠️ Solução de Problemas
 
@@ -186,16 +196,19 @@ O sistema de filtros foi aprimorado para lidar com diversos cenários e melhorar
 1. Verifique se há pontos turísticos cadastrados para a cidade
 2. Execute o comando `update_city_types` para reconstruir o cache
 3. Verifique os logs para mais detalhes do problema
+4. Confirme se o nome da cidade está correto (com ou sem ", SP")
 
 ### Erro na importação de dados
 1. Verifique se o arquivo CSV está no formato correto
 2. Execute a importação com `--verbosity 2` para mais detalhes
 3. Após a importação, execute `update_city_types`
+4. Verifique se todos os tipos foram importados corretamente
 
 ### Performance dos Filtros
-* A tabela CityTypes mantém um cache dos tipos por cidade
-* As consultas são otimizadas com índices
+* A tabela `CityTypes` mantém um cache dos tipos por cidade
+* As consultas são otimizadas com índices nas colunas `city` e `type_name`
 * O sistema atualiza automaticamente o cache quando necessário
+* Fallback para busca direta caso o cache esteja desatualizado
 
 ## 📝 Contribuindo
 
