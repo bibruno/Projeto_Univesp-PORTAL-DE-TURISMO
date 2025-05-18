@@ -1,0 +1,38 @@
+from django.db import migrations, models
+import django.db.models.deletion
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ('pontos_turisticos', '0004_citytype_and_more'),
+    ]
+
+    operations = [
+        migrations.AlterUniqueTogether(
+            name='citytype',
+            unique_together=set(),
+        ),
+        migrations.RemoveField(
+            model_name='citytype',
+            name='city',
+        ),
+        migrations.RemoveField(
+            model_name='citytype',
+            name='type',
+        ),
+        migrations.AddField(
+            model_name='citytype',
+            name='name',
+            field=models.CharField(default='', max_length=100, unique=True),
+            preserve_default=False,
+        ),
+        migrations.CreateModel(
+            name='City',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('name', models.CharField(max_length=100, unique=True)),
+                ('type', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='pontos_turisticos.citytype')),
+            ],
+        ),
+    ] 
