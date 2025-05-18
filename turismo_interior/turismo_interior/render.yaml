@@ -3,15 +3,12 @@ services:
     name: turismo-interior
     env: python
     buildCommand: |
-      cd /opt/render/project/src/turismo_interior/turismo_interior
       pip install -r requirements.txt
       python manage.py collectstatic --noinput
       python manage.py migrate
-      python manage.py import_spots /opt/render/project/src/Banco/pontos_turisticos_traduzido.csv
+      python manage.py import_spots ../../Banco/pontos_turisticos_traduzido.csv
       python manage.py populate_city_types
-    startCommand: |
-      cd /opt/render/project/src/turismo_interior/turismo_interior
-      gunicorn turismo_interior.wsgi:application
+    startCommand: gunicorn turismo_interior.wsgi:application
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
