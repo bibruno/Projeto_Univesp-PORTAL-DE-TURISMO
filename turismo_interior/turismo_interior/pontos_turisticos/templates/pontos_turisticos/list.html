@@ -43,7 +43,7 @@
         <div class="card spot-card h-100">
             <div class="card-body">
                 <h5 class="card-title">{{ spot.name }}</h5>
-                <h6 class="card-subtitle mb-2 text-muted">{{ spot.city.name }}</h6>
+                <h6 class="card-subtitle mb-2 text-muted">{{ spot.city }}</h6>
                 <p class="card-text">{{ spot.address }}</p>
                 <div class="mb-2">
                     {% for type in spot.types.all %}
@@ -96,7 +96,6 @@
     </ul>
 </nav>
 {% endif %}
-{% endblock %}
 
 {% block extra_js %}
 <script>
@@ -115,16 +114,14 @@ function debounce(func, wait) {
 
 // Função para atualizar os tipos
 function updateTypes(city) {
-    console.log('Atualizando tipos para cidade:', city); // Debug
     const typeSelect = document.getElementById('type');
     
     // Limpa o select de tipos
     typeSelect.innerHTML = '<option value="Todos">Todos</option>';
     
     // Busca os tipos da cidade selecionada
-    fetch(`/pontos_turisticos/api/types-for-city/?city=${encodeURIComponent(city)}`)
+    fetch(`/api/types-for-city/?city=${encodeURIComponent(city)}`)
         .then(response => {
-            console.log('Resposta da API:', response); // Debug
             if (!response.ok) {
                 throw new Error('Erro ao buscar tipos');
             }
@@ -157,7 +154,6 @@ function updateTypes(city) {
 // Adiciona o evento de change com debounce
 document.getElementById('city').addEventListener('change', debounce(function() {
     const city = this.value;
-    console.log('Cidade selecionada:', city); // Debug
     updateTypes(city);
     // Submete o formulário após um pequeno delay para garantir que os tipos foram atualizados
     setTimeout(() => {
@@ -176,4 +172,5 @@ document.addEventListener('DOMContentLoaded', function() {
     updateTypes(citySelect.value);
 });
 </script>
+{% endblock %}
 {% endblock %} 

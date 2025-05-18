@@ -1,6 +1,6 @@
 from django.views.generic import ListView, TemplateView
 from django.http import JsonResponse
-from django.db.models import Count
+from django.db.models import Count, Avg
 from .models import TouristSpot, City, Type, CityType
 
 def get_types_for_city(request):
@@ -63,5 +63,34 @@ class TouristSpotListView(ListView):
         # Adicionar filtros atuais
         context['current_city'] = self.request.GET.get('city', 'Todas')
         context['current_type'] = self.request.GET.get('type', 'Todos')
+        
+        return context 
+
+class StatisticsView(TemplateView):
+    template_name = 'pontos_turisticos/statistics.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Total de pontos turísticos
+        context['total_spots'] = TouristSpot.objects.count()
+        
+        # Total de cidades
+        context['total_cities'] = City.objects.count()
+        
+        # Média de avaliações
+        context['avg_rating'] = TouristSpot.objects.aggregate(
+            avg_rating=Avg('rating')
+        )['avg_rating'] or 0
+        
+        # Top 10 cidades com mais pontos turísticos
+        context['top_cities'] = City.objects.annotate(
+            spot_count=Count('touristspot')
+        ).order_by('-spot_count')[:10]
+        
+        # Distribuição por tipo
+        context['type_distribution'] = Type.objects.annotate(
+            spot_count=Count('touristspot')
+        ).order_by('-spot_count')
         
         return context 
