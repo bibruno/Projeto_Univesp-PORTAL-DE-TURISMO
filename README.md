@@ -1,57 +1,25 @@
-# Portal de Turismo do Interior de São Paulo
+# Portal de Turismo do Interior de SP
 
-Um portal web desenvolvido em Django para explorar pontos turísticos do interior de São Paulo, com filtros dinâmicos, estatísticas e integração com Google Maps.
+Portal web para visualização e busca de pontos turísticos do interior de São Paulo.
 
-## 🚀 Funcionalidades
+## 🌟 Funcionalidades
 
 * **Listagem de Pontos Turísticos**  
-   * Visualização em cards com informações detalhadas  
-   * Paginação (9 itens por página)  
-   * Filtros dinâmicos por cidade e tipo  
-   * Integração com Google Maps
+   * Visualização em cards com informações detalhadas
+   * Sistema de paginação
+   * Links diretos para o Google Maps
 
-* **Sistema de Filtro em Cascata**
-   * Atualização dinâmica dos tipos disponíveis por cidade
-   * Sistema de fallback em 3 níveis:
-     1. Busca exata na tabela de cache
-     2. Busca parcial com correspondência parcial
-     3. Busca direta nos pontos turísticos
-   * Debounce no frontend para otimização
-   * Manutenção automática do cache
-   * Logging detalhado para diagnóstico
-   * Tratamento inteligente de nomes de cidade (com/sem ", SP")
-
-* **Sistema de Cache de Tipos por Cidade**
-   * Tabela `CityTypes` para armazenamento eficiente
-   * Atualização automática via comando `update_city_types`
-   * Contagem de pontos turísticos por tipo em cada cidade
-   * Índices otimizados para consulta rápida
-
-* **Filtros Inteligentes**  
-   * Filtro por cidade com suporte a variações de nome
-   * Busca case-insensitive para maior flexibilidade
-   * Filtro de tipos que se atualiza automaticamente
-   * Sistema de fallback para busca de tipos
-   * Manutenção dos filtros durante a navegação
+* **Sistema de Filtros**  
+   * Filtro por cidade
+   * Filtro por tipo de ponto turístico
+   * Filtros dinâmicos em cascata
+   * Atualização em tempo real
 
 * **Estatísticas**  
-   * Total de pontos turísticos  
-   * Total de cidades  
-   * Média de avaliações  
-   * Top 10 cidades com mais pontos turísticos  
+   * Total de pontos turísticos
+   * Distribuição por cidade
+   * Média de avaliações
    * Distribuição por tipo
-
-* **Interface Responsiva**  
-   * Design moderno com Bootstrap  
-   * Cards com efeito hover  
-   * Badges para tipos  
-   * Layout adaptável para diferentes dispositivos
-
-* **Debugging Avançado**  
-   * Painel de debug embutido na interface
-   * Logs detalhados de requisições AJAX
-   * Visualização de resposta da API em tempo real
-   * Sistema de logging para diagnóstico de problemas
 
 ## 🛠️ Tecnologias Utilizadas
 
@@ -60,6 +28,7 @@ Um portal web desenvolvido em Django para explorar pontos turísticos do interio
    * Python 3.x  
    * SQLite (banco de dados)
    * Django ORM (Object-Relational Mapping)
+
 * **Frontend**  
    * HTML5  
    * CSS3  
@@ -67,6 +36,7 @@ Um portal web desenvolvido em Django para explorar pontos turísticos do interio
    * Fetch API (para filtros dinâmicos)
    * Bootstrap 5.3  
    * Bootstrap Icons
+
 * **Deploy**
    * Render.com (PaaS)
    * Gunicorn (servidor WSGI)
@@ -138,7 +108,8 @@ services:
       pip install -r requirements.txt
       python manage.py collectstatic --noinput
       python manage.py migrate
-      python manage.py import_spots ../../Banco/pontos_turisticos_traduzido.csv
+      python manage.py import_spots ../../Banco/pontos_turisticos_traduzido.csv --clear
+      python manage.py update_city_types
     startCommand: |
       cd turismo_interior/turismo_interior
       gunicorn turismo_interior.wsgi:application
@@ -149,6 +120,8 @@ services:
         value: django-insecure-mma@zaosporji5+&s&^o26o(7stw@8y*g$q8esyfvsg%0jd22
       - key: DEBUG
         value: false
+      - key: DJANGO_SETTINGS_MODULE
+        value: turismo_interior.settings
 ```
 
 ## 🔧 Comandos de Manutenção
@@ -173,49 +146,58 @@ services:
 ### Backend (views.py)
 ```python
 def get_types_for_city(request):
-    city = request.GET.get('city', '')
-    
-    if not city or city == 'Todas':
-        # Retorna todos os tipos se nenhuma cidade selecionada
-        types = Type.objects.values_list('name', flat=True).distinct()
-    else:
-        # Remove sufixo ", SP" se existir
-        city_name = city.replace(', SP', '')
+    try:
+        city = request.GET.get('city', '')
         
-        # Sistema de fallback em 3 níveis
-        city_types = CityTypes.objects.filter(city__iexact=city_name)
-        if not city_types.exists():
-            city_types = CityTypes.objects.filter(city__icontains=city_name)
-        
-        if city_types.exists():
-            types = city_types.values_list('type_name', flat=True).distinct()
+        if city == 'Todas':
+            types = Type.objects.values_list('name', flat=True).distinct()
         else:
-            types = Type.objects.filter(
-                touristspot__city__icontains=city_name
-            ).values_list('name', flat=True).distinct()
+            city_name = city.replace(', SP', '')
+            city_types = CityTypes.objects.filter(city_name__icontains=city_name)
+            
+            if city_types.exists():
+                types = city_types.values_list('type_name', flat=True).distinct()
+            else:
+                types = Type.objects.filter(
+                    touristspot__city__icontains=city_name
+                ).values_list('name', flat=True).distinct()
+                
+                if not types:
+                    try:
+                        call_command('update_city_types')
+                    except Exception as e:
+                        logger.error(f"Erro ao atualizar tabela CityTypes: {str(e)}")
+        
+        types_list = list(types) if 'types' in locals() else []
+        return JsonResponse(types_list, safe=False)
+        
+    except Exception as e:
+        logger.error(f"Erro ao buscar tipos para cidade {city}: {str(e)}")
+        return JsonResponse([], safe=False)
 ```
 
 ### Frontend (JavaScript)
 ```javascript
 function updateTypes(city) {
     const typeSelect = document.getElementById('type');
-    const currentType = typeSelect.value;
+    typeSelect.innerHTML = '<option value="Todos">Todos</option>';
+    
+    if (city === 'Todas') {
+        return;
+    }
     
     fetch(`/api/types-for-city/?city=${encodeURIComponent(city)}`)
         .then(response => response.json())
         .then(types => {
             types.forEach(type => {
-                if (type) {
-                    const option = document.createElement('option');
-                    option.value = type;
-                    option.textContent = type;
-                    typeSelect.appendChild(option);
-                }
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                typeSelect.appendChild(option);
             });
-            
-            if (currentType && types.includes(currentType)) {
-                typeSelect.value = currentType;
-            }
+        })
+        .catch(error => {
+            console.error('Erro ao buscar tipos:', error);
         });
 }
 
@@ -231,27 +213,18 @@ document.getElementById('city').addEventListener('change',
 
 ### Tipos não aparecem para uma cidade
 1. Verifique se há pontos turísticos cadastrados para a cidade
-2. Execute o comando `update_city_types` para reconstruir o cache
-3. Verifique os logs para mais detalhes do problema
-4. Confirme se o nome da cidade está correto (com ou sem ", SP")
+2. Execute o comando `update_city_types` para atualizar o cache
+3. Verifique os logs do servidor para possíveis erros
 
-### Erro na importação de dados
+### Erros de importação
 1. Verifique se o arquivo CSV está no formato correto
-2. Execute a importação com `--verbosity 2` para mais detalhes
-3. Após a importação, execute `update_city_types`
-4. Verifique se todos os tipos foram importados corretamente
+2. Certifique-se de que o arquivo está acessível
+3. Verifique os logs para mensagens de erro específicas
 
-### Performance dos Filtros
-* A tabela `CityTypes` mantém um cache dos tipos por cidade
-* As consultas são otimizadas com índices nas colunas `city` e `type_name`
-* O sistema atualiza automaticamente o cache quando necessário
-* Fallback para busca direta caso o cache esteja desatualizado
-
-### Logs e Debugging
-* Painel de debug na interface mostra detalhes das chamadas
-* Logs do backend registram todas as operações
-* Sistema de fallback registra cada nível de busca
-* Contadores de performance para diagnóstico
+### Problemas de deploy
+1. Verifique se todas as variáveis de ambiente estão configuradas
+2. Certifique-se de que o arquivo `render.yaml` está atualizado
+3. Verifique os logs do deploy no Render.com
 
 ## 📝 Contribuindo
 
