@@ -2,19 +2,26 @@ from django.views.generic import ListView, TemplateView
 from django.http import JsonResponse
 from django.db.models import Count
 from .models import TouristSpot, City, Type
+import logging
+
+# Configuração de logging
+logger = logging.getLogger(__name__)
 
 def get_types_for_city(request):
     city = request.GET.get('city', '')
-    print(f"Buscando tipos para a cidade: {city}")  # Debug
+    logger.debug(f"API chamada com cidade: {city}")
+    print(f"API chamada - Buscando tipos para a cidade: {city}")  # Debug
     
     if city == 'Todas':
         # Se for 'Todas', retorna todos os tipos únicos
         types = Type.objects.values_list('name', flat=True).distinct()
     else:
         # Para uma cidade específica, busca os tipos dos pontos turísticos daquela cidade
-        types = Type.objects.filter(
+        queryset = Type.objects.filter(
             touristspot__city__name=city
-        ).values_list('name', flat=True).distinct()
+        )
+        print(f"Query SQL: {str(queryset.query)}")
+        types = queryset.values_list('name', flat=True).distinct()
     
     # Converte para lista e remove valores None
     types_list = list(filter(None, types))

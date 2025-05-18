@@ -132,7 +132,8 @@ def get_types_for_city(request):
         types = Type.objects.values_list('name', flat=True).distinct()
         response_data['query_type'] = 'all_types'
     else:
-        # Para uma cidade específica, busca os tipos dos pontos turísticos desta cidade
+        # Para uma cidade específica, busca os tipos dos pontos turísticos desta cidade diretamente
+        # usando a relação reversa entre Type e TouristSpot
         queryset = Type.objects.filter(
             touristspot__city=city
         )

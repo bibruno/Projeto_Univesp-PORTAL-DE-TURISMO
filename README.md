@@ -82,12 +82,7 @@ python manage.py migrate
 python manage.py import_spots ../../Banco/pontos_turisticos_traduzido.csv
 ```
 
-6. Popule a tabela de tipos por cidade:
-```bash
-python manage.py populate_city_types
-```
-
-7. Inicie o servidor:
+6. Inicie o servidor:
 ```bash
 python manage.py runserver
 ```
@@ -111,7 +106,6 @@ services:
       python manage.py collectstatic --noinput
       python manage.py migrate
       python manage.py import_spots ../../Banco/pontos_turisticos_traduzido.csv
-      python manage.py populate_city_types
     startCommand: |
       cd turismo_interior/turismo_interior
       gunicorn turismo_interior.wsgi:application
@@ -143,7 +137,6 @@ Projeto_Univesp-PORTAL-DE-TURISMO/
 │   │   │   ├── management/
 │   │   │   │   └── commands/
 │   │   │   │       ├── import_spots.py
-│   │   │   │       └── populate_city_types.py
 │   │   │   ├── models.py
 │   │   │   ├── views.py
 │   │   │   └── urls.py
@@ -163,7 +156,7 @@ Projeto_Univesp-PORTAL-DE-TURISMO/
 
 * **Type**: Define os tipos de pontos turísticos (ex: Museu, Parque)
 * **TouristSpot**: Representa os pontos turísticos, com relacionamento many-to-many com Type
-* **CityType**: (Legado) Originalmente usado para armazenar tipos disponíveis por cidade
+* **City**: (Legado) Representa uma cidade
 
 ### API e Endpoints
 
@@ -176,7 +169,7 @@ Projeto_Univesp-PORTAL-DE-TURISMO/
 O sistema de filtros em cascata funciona através de uma combinação de Django e JavaScript:
 
 1. Quando uma cidade é selecionada, um pedido AJAX é enviado para `/api/types-for-city/`
-2. O backend filtra os tipos que existem naquela cidade específica
+2. O backend executa a consulta `Type.objects.filter(touristspot__city=city)` para obter todos os tipos associados a essa cidade
 3. O frontend atualiza o dropdown de tipos com as opções retornadas
 4. Os filtros mantêm seu estado durante a navegação de páginas
 
@@ -185,7 +178,6 @@ O sistema de filtros em cascata funciona através de uma combinação de Django 
 * `import_spots`: Importa pontos turísticos de um arquivo CSV
   * Opção `--clear`: Limpa os dados existentes antes de importar (opcional)
   * Ignora registros duplicados por default
-* `populate_city_types`: Popula a tabela de tipos por cidade
 * `list_cities_types`: Lista todas as cidades e seus respectivos tipos
 
 ## 🔍 Como Usar
@@ -217,7 +209,7 @@ O arquivo CSV deve conter as seguintes colunas:
 - Verifique se o JavaScript está habilitado no navegador
 - Inspecione o console do navegador para erros
 - O endpoint `/api/types-for-city/` deve retornar um array JSON com os tipos disponíveis
-- A consulta SQL usa `Type.objects.filter(touristspot__city=city)` para obter os tipos por cidade
+- A consulta SQL usa `Type.objects.filter(touristspot__city=city)` para obter os tipos por cidade dinamicamente
 
 ### Erro no Deploy
 - Verifique os logs no painel do Render.com
@@ -231,9 +223,9 @@ O arquivo CSV deve conter as seguintes colunas:
 
 ## 🔄 Atualizações Recentes
 
-* **Filtros em Cascata**: Correção do sistema de filtros para mostrar corretamente os tipos disponíveis por cidade
+* **Filtros em Cascata**: Melhoria do sistema de filtros para consulta dinâmica dos tipos por cidade
 * **Importação Robusta**: Melhoria no comando `import_spots` para lidar com registros duplicados
-* **Interface Otimizada**: Adição de feedback visual durante o carregamento dos filtros
+* **Interface Otimizada**: Adição de ferramentas de debug para diagnóstico de problemas
 
 ## 🤝 Contribuindo
 

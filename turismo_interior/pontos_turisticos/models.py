@@ -10,4 +10,4 @@ class TouristSpot(models.Model):
     types = models.ManyToManyField(Type, blank=True)
 
     def __str__(self):
-        return self.name 
+        return self.name
