@@ -27,6 +27,14 @@ class Migration(migrations.Migration):
             field=models.CharField(default='', max_length=100, unique=True),
             preserve_default=False,
         ),
+        migrations.CreateModel(
+            name='City',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('name', models.CharField(max_length=100, unique=True)),
+                ('type', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='pontos_turisticos.citytype')),
+            ],
+        ),
         migrations.RemoveField(
             model_name='touristspot',
             name='city',
