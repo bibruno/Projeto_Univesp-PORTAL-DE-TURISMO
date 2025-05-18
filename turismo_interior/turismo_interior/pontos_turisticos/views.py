@@ -132,18 +132,37 @@ def get_types_for_city(request):
         types = Type.objects.values_list('name', flat=True).distinct()
         response_data['query_type'] = 'all_types'
     else:
-        # Para uma cidade específica, busca os tipos dos pontos turísticos desta cidade diretamente
-        # usando a relação reversa entre Type e TouristSpot
-        queryset = Type.objects.filter(
-            touristspot__city=city
-        )
+        # Para uma cidade específica, tenta uma busca mais flexível
+        # Primeiro verifica pontos turísticos exatamente com o nome da cidade
+        queryset = Type.objects.filter(touristspot__city=city)
+        
+        # Se não encontrar resultados, tenta uma busca com contains
+        if not queryset.exists():
+            queryset = Type.objects.filter(touristspot__city__contains=city.split(',')[0])
+            print(f"Tentando busca flexível para: {city.split(',')[0]}")
+        
+        # Se ainda não encontrar, tenta remover ', SP' ou outro sufixo do nome da cidade
+        if not queryset.exists() and ',' in city:
+            city_base = city.split(',')[0].strip()
+            queryset = Type.objects.filter(touristspot__city__contains=city_base)
+            print(f"Tentando busca com nome base da cidade: {city_base}")
+            
+            # Adiciona todas as cidades no banco para debug
+            all_cities = list(TouristSpot.objects.values_list('city', flat=True).distinct()[:20])
+            print(f"Cidades disponíveis (primeiras 20): {all_cities}")
+        
         # Log da query SQL
         print(f"Query SQL: {str(queryset.query)}")
         types = queryset.values_list('name', flat=True).distinct()
         response_data['query_type'] = 'city_specific'
         
-        # Verifica se existem pontos turísticos na cidade
-        spot_count = TouristSpot.objects.filter(city=city).count()
+        # Verifica se existem pontos turísticos na cidade (busca flexível)
+        if ',' in city:
+            city_base = city.split(',')[0].strip()
+            spot_count = TouristSpot.objects.filter(city__contains=city_base).count()
+        else:
+            spot_count = TouristSpot.objects.filter(city__contains=city).count()
+            
         response_data['spot_count'] = spot_count
         print(f"Pontos turísticos na cidade {city}: {spot_count}")
     

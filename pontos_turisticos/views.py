@@ -16,10 +16,20 @@ def get_types_for_city(request):
         # Se for 'Todas', retorna todos os tipos únicos
         types = Type.objects.values_list('name', flat=True).distinct()
     else:
-        # Para uma cidade específica, busca os tipos dos pontos turísticos daquela cidade
-        queryset = Type.objects.filter(
-            touristspot__city__name=city
-        )
+        # Para uma cidade específica, tenta uma busca mais flexível
+        queryset = Type.objects.filter(touristspot__city__name=city)
+        
+        # Se não encontrar resultados, tenta uma busca com contains
+        if not queryset.exists():
+            city_base = city.split(',')[0].strip() if ',' in city else city
+            queryset = Type.objects.filter(touristspot__city__name__contains=city_base)
+            print(f"Tentando busca flexível para: {city_base}")
+            
+            # Se ainda não encontrar, lista todas as cidades disponíveis para debug
+            if not queryset.exists():
+                all_cities = list(City.objects.values_list('name', flat=True).distinct()[:20])
+                print(f"Cidades disponíveis (primeiras 20): {all_cities}")
+        
         print(f"Query SQL: {str(queryset.query)}")
         types = queryset.values_list('name', flat=True).distinct()
     
