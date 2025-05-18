@@ -1,7 +1,8 @@
 from django.core.management.base import BaseCommand
 from django.db.models import Count
 from pontos_turisticos.models import TouristSpot, CityTypes
-from django.db import transaction
+from django.db import transaction, connection
+from django.core.management import call_command
 
 class Command(BaseCommand):
     help = 'Atualiza a tabela CityTypes com os tipos de cada cidade'
@@ -10,9 +11,26 @@ class Command(BaseCommand):
         self.stdout.write('Iniciando atualização da tabela CityTypes...')
         
         try:
+            # Verifica se a tabela existe
+            table_exists = False
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='pontos_turisticos_citytypes';"
+                )
+                if cursor.fetchone():
+                    table_exists = True
+            
+            # Se a tabela não existir, cria as migrações e aplica
+            if not table_exists:
+                self.stdout.write('Tabela CityTypes não encontrada. Criando migrações...')
+                call_command('makemigrations', 'pontos_turisticos')
+                self.stdout.write('Aplicando migrações...')
+                call_command('migrate', 'pontos_turisticos')
+            
             with transaction.atomic():
                 # Limpa a tabela atual
-                CityTypes.objects.all().delete()
+                if table_exists:
+                    CityTypes.objects.all().delete()
                 
                 # Obtém todas as cidades
                 cities = TouristSpot.objects.values_list('city', flat=True).distinct()
