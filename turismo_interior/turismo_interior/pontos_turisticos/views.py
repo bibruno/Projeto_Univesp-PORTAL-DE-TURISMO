@@ -120,58 +120,63 @@ def list_spots(request):
     return render(request, 'pontos_turisticos/list.html', context)
 
 def get_types_for_city(request):
-    city = request.GET.get('city', '')
-    logger.debug(f"API chamada com cidade: {city}")
-    
-    if not city or city == 'Todas':
-        # Se não houver cidade selecionada ou for 'Todas', retorna todos os tipos
-        types = Type.objects.values_list('name', flat=True).distinct()
-        logger.debug(f"Retornando todos os tipos disponíveis: {list(types)}")
-    else:
-        # Remove o sufixo ", SP" se existir
-        city_name = city.replace(', SP', '')
-        logger.debug(f"Buscando tipos para cidade: {city_name}")
+    try:
+        city = request.GET.get('city', '')
+        logger.debug(f"API chamada com cidade: {city}")
         
-        # Primeiro, verifica se há dados na tabela CityTypes
-        city_types = CityTypes.objects.filter(city__iexact=city_name)
-        if not city_types.exists():
-            # Se não encontrar com nome exato, tenta busca parcial
-            city_types = CityTypes.objects.filter(city__icontains=city_name)
-        
-        if city_types.exists():
-            # Usa os dados da tabela CityTypes
-            types = city_types.values_list('type_name', flat=True).distinct()
-            logger.debug(f"Tipos encontrados na tabela CityTypes: {list(types)}")
-            
-            # Log das contagens
-            for ct in city_types:
-                logger.debug(f"Tipo '{ct.type_name}' tem {ct.count} pontos turísticos")
+        if not city or city == 'undefined' or city == 'Todas':
+            # Se não houver cidade selecionada ou for 'Todas', retorna todos os tipos
+            types = Type.objects.values_list('name', flat=True).distinct()
+            logger.debug(f"Retornando todos os tipos disponíveis: {list(types)}")
         else:
-            # Se não encontrar na tabela CityTypes, faz uma busca direta
-            logger.debug("Nenhum tipo encontrado na tabela CityTypes, fazendo busca direta...")
+            # Remove o sufixo ", SP" se existir
+            city_name = city.replace(', SP', '')
+            logger.debug(f"Buscando tipos para cidade: {city_name}")
             
-            # Busca pontos turísticos para a cidade
-            spots = TouristSpot.objects.filter(city__icontains=city_name)
-            logger.debug(f"Pontos turísticos encontrados: {spots.count()}")
+            # Primeiro, verifica se há dados na tabela CityTypes
+            city_types = CityTypes.objects.filter(city__iexact=city_name)
+            if not city_types.exists():
+                # Se não encontrar com nome exato, tenta busca parcial
+                city_types = CityTypes.objects.filter(city__icontains=city_name)
             
-            # Lista os pontos encontrados
-            for spot in spots:
-                logger.debug(f"Ponto: {spot.name}, Cidade: {spot.city}, Tipos: {[t.name for t in spot.types.all()]}")
-            
-            # Obtém os tipos
-            types = Type.objects.filter(
-                touristspot__city__icontains=city_name
-            ).values_list('name', flat=True).distinct()
-            
-            if not types:
-                logger.debug("Nenhum tipo encontrado na busca direta")
-                # Atualiza a tabela CityTypes em background
-                try:
-                    call_command('update_city_types')
-                    logger.debug("Tabela CityTypes atualizada com sucesso")
-                except Exception as e:
-                    logger.error(f"Erro ao atualizar tabela CityTypes: {str(e)}")
-    
-    types_list = list(types) if 'types' in locals() else []
-    logger.debug(f"Tipos finais encontrados para {city}: {types_list}")
-    return JsonResponse(types_list, safe=False)
+            if city_types.exists():
+                # Usa os dados da tabela CityTypes
+                types = city_types.values_list('type_name', flat=True).distinct()
+                logger.debug(f"Tipos encontrados na tabela CityTypes: {list(types)}")
+                
+                # Log das contagens
+                for ct in city_types:
+                    logger.debug(f"Tipo '{ct.type_name}' tem {ct.count} pontos turísticos")
+            else:
+                # Se não encontrar na tabela CityTypes, faz uma busca direta
+                logger.debug("Nenhum tipo encontrado na tabela CityTypes, fazendo busca direta...")
+                
+                # Busca pontos turísticos para a cidade
+                spots = TouristSpot.objects.filter(city__icontains=city_name)
+                logger.debug(f"Pontos turísticos encontrados: {spots.count()}")
+                
+                # Lista os pontos encontrados
+                for spot in spots:
+                    logger.debug(f"Ponto: {spot.name}, Cidade: {spot.city}, Tipos: {[t.name for t in spot.types.all()]}")
+                
+                # Obtém os tipos
+                types = Type.objects.filter(
+                    touristspot__city__icontains=city_name
+                ).values_list('name', flat=True).distinct()
+                
+                if not types:
+                    logger.debug("Nenhum tipo encontrado na busca direta")
+                    # Atualiza a tabela CityTypes em background
+                    try:
+                        call_command('update_city_types')
+                        logger.debug("Tabela CityTypes atualizada com sucesso")
+                    except Exception as e:
+                        logger.error(f"Erro ao atualizar tabela CityTypes: {str(e)}")
+        
+        types_list = list(types) if 'types' in locals() else []
+        logger.debug(f"Tipos finais encontrados para {city}: {types_list}")
+        return JsonResponse(types_list, safe=False)
+        
+    except Exception as e:
+        logger.error(f"Erro ao buscar tipos para cidade {city}: {str(e)}")
+        return JsonResponse({"error": str(e)}, status=500)

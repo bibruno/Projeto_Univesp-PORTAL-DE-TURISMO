@@ -140,8 +140,13 @@ function debounce(func, wait) {
 
 // Função para atualizar os tipos
 function updateTypes(city) {
+    if (!city) {
+        logDebug('Cidade inválida', city);
+        return;
+    }
+
     const typeSelect = document.getElementById('type');
-    const currentType = typeSelect.value;  // Guarda o tipo atual
+    const currentType = typeSelect.value;
     
     // Limpa o select de tipos
     typeSelect.innerHTML = '<option value="Todos">Todos</option>';
@@ -167,7 +172,7 @@ function updateTypes(city) {
             if (types && types.length > 0) {
                 // Adiciona os tipos ao select
                 types.forEach(type => {
-                    if (type) { // Garante que o tipo não é null ou undefined
+                    if (type) {
                         const option = document.createElement('option');
                         option.value = type;
                         option.textContent = type;
@@ -182,17 +187,6 @@ function updateTypes(city) {
             } else {
                 logDebug('Nenhum tipo encontrado para esta cidade', city);
             }
-            
-            // Conta quantos tipos foram adicionados
-            logDebug('Total de tipos adicionados', typeSelect.options.length - 1);
-            
-            // Seleciona o tipo atual se existir nos parâmetros da URL
-            const urlParams = new URLSearchParams(window.location.search);
-            const typeFromUrl = urlParams.get('type');
-            if (typeFromUrl && types.includes(typeFromUrl)) {
-                typeSelect.value = typeFromUrl;
-                logDebug('Tipo selecionado da URL', typeFromUrl);
-            }
         })
         .catch(error => {
             logDebug('Erro na chamada', error.message);
@@ -203,11 +197,9 @@ function updateTypes(city) {
 // Adiciona o evento de change com debounce
 document.getElementById('city').addEventListener('change', debounce(function() {
     const city = this.value;
-    updateTypes(city);
-    // Submete o formulário após um pequeno delay para garantir que os tipos foram atualizados
-    setTimeout(() => {
-        document.getElementById('filter-form').submit();
-    }, 500);
+    if (city) {
+        updateTypes(city);
+    }
 }, 300));
 
 // Adiciona o evento de change para o tipo
@@ -215,27 +207,13 @@ document.getElementById('type').addEventListener('change', function() {
     document.getElementById('filter-form').submit();
 });
 
-// Atualiza os tipos quando a página carrega (apenas se houver uma cidade selecionada)
+// Atualiza os tipos quando a página carrega
 document.addEventListener('DOMContentLoaded', function() {
     const citySelect = document.getElementById('city');
-    const currentCity = citySelect.value;
-    
-    // Só atualiza os tipos se houver uma cidade selecionada diferente de 'Todas'
-    if (currentCity && currentCity !== 'Todas') {
-        logDebug('Página carregada, cidade inicial', currentCity);
-        updateTypes(currentCity);
+    const city = citySelect.value;
+    if (city && city !== 'undefined') {
+        updateTypes(city);
     }
-    
-    // Adiciona botão para mostrar/esconder debug
-    const debugToggle = document.createElement('button');
-    debugToggle.textContent = 'Mostrar/Esconder Debug';
-    debugToggle.className = 'btn btn-sm btn-secondary mt-2';
-    debugToggle.onclick = function(e) {
-        e.preventDefault();
-        const debugInfo = document.getElementById('debug-info');
-        debugInfo.style.display = debugInfo.style.display === 'none' ? 'block' : 'none';
-    };
-    document.querySelector('.card-body').appendChild(debugToggle);
 });
 </script>
 {% endblock %}
