@@ -10,7 +10,7 @@ class Type(models.Model):
 
 class TouristSpot(models.Model):
     name = models.CharField(max_length=200)
-    city = models.CharField(max_length=100)
+    city = models.ForeignKey('City', on_delete=models.CASCADE)
     address = models.TextField()
     rating = models.FloatField()
     place_id = models.CharField(max_length=100, unique=True)
@@ -20,11 +20,14 @@ class TouristSpot(models.Model):
         return self.name
 
 class CityType(models.Model):
-    city = models.CharField(max_length=100)
-    type = models.CharField(max_length=100)
+    name = models.CharField(max_length=100, unique=True)
     
-    class Meta:
-        unique_together = ('city', 'type')
-        
     def __str__(self):
-        return f"{self.city} - {self.type}"
+        return self.name
+
+class City(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    type = models.ForeignKey(CityType, on_delete=models.CASCADE)
+    
+    def __str__(self):
+        return self.name
