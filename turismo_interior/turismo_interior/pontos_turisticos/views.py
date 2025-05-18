@@ -23,12 +23,14 @@ class TouristSpotListView(ListView):
         # Filtro por cidade
         city = self.request.GET.get('city')
         if city and city != 'Todas':
-            queryset = queryset.filter(city=city)
+            # Remove o sufixo ", SP" se existir
+            city_name = city.replace(', SP', '')
+            queryset = queryset.filter(city__icontains=city_name)
         
         # Filtro por tipo
         type_name = self.request.GET.get('type')
         if type_name and type_name != 'Todos':
-            queryset = queryset.filter(types__name=type_name)
+            queryset = queryset.filter(types__name__iexact=type_name)
         
         return queryset.select_related().prefetch_related('types').distinct()
 
@@ -119,35 +121,25 @@ def list_spots(request):
 def get_types_for_city(request):
     city = request.GET.get('city', '')
     logger.debug(f"API chamada com cidade: {city}")
-    print(f"API chamada - Buscando tipos para a cidade: {city}")  # Debug
     
-    # DIAGNÓSTICO DIRETO
-    print("\n==== DIAGNÓSTICO DO BANCO DE DADOS ====")
-    all_cities = list(TouristSpot.objects.values_list('city', flat=True).distinct()[:20])
-    print(f"Cidades disponíveis (primeiras 20): {all_cities}")
+    if not city or city == 'Todas':
+        # Se não houver cidade selecionada ou for 'Todas', retorna todos os tipos
+        types = Type.objects.values_list('name', flat=True).distinct()
+    else:
+        # Remove o sufixo ", SP" se existir
+        city_name = city.replace(', SP', '')
+        
+        # Busca tipos para a cidade específica
+        types = Type.objects.filter(
+            touristspot__city__icontains=city_name
+        ).values_list('name', flat=True).distinct()
+        
+        # Se não encontrar nenhum tipo, tenta uma busca mais flexível
+        if not types:
+            types = Type.objects.filter(
+                touristspot__city__icontains=city_name.split()[0]  # Usa apenas a primeira palavra
+            ).values_list('name', flat=True).distinct()
     
-    all_types = list(Type.objects.values_list('name', flat=True).distinct()[:20])
-    print(f"Tipos disponíveis (primeiros 20): {all_types}")
-    
-    # Verifica se existem pontos turísticos específicos
-    amparo_count = TouristSpot.objects.filter(city__icontains='amparo').count()
-    print(f"Pontos turísticos com 'amparo' no nome: {amparo_count}")
-    
-    # Verifica se algum ponto turístico está associado a tipos
-    spots_with_types = TouristSpot.objects.filter(types__isnull=False).count()
-    print(f"Pontos turísticos que têm tipos associados: {spots_with_types}")
-    
-    # Verifica qual relação está funcionando
-    if amparo_count > 0:
-        print("Tentando direto nas relações many-to-many:")
-        for spot in TouristSpot.objects.filter(city__icontains='amparo')[:5]:
-            types_for_spot = spot.types.all()
-            print(f"Spot: {spot.name}, Cidade: {spot.city}, Tipos: {[t.name for t in types_for_spot]}")
-    
-    print("=== FIM DO DIAGNÓSTICO ===\n")
-    
-    # RETORNAR SEMPRE TODOS OS TIPOS PARA TESTAR FRONTEND
-    # Isso vai fazer o dropdown funcionar com todos os tipos para qualquer cidade
-    all_available_types = list(Type.objects.values_list('name', flat=True).distinct())
-    print(f"Retornando TODOS os tipos ({len(all_available_types)}) para garantir funcionamento")
-    return JsonResponse(all_available_types, safe=False)
+    types_list = list(types)
+    logger.debug(f"Tipos encontrados para {city}: {types_list}")
+    return JsonResponse(types_list, safe=False)

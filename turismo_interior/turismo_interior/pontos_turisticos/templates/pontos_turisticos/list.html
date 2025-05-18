@@ -196,7 +196,7 @@ document.getElementById('city').addEventListener('change', debounce(function() {
     // Submete o formulário após um pequeno delay para garantir que os tipos foram atualizados
     setTimeout(() => {
         document.getElementById('filter-form').submit();
-    }, 500); // Aumentado para 500ms para dar tempo de debug
+    }, 500);
 }, 300));
 
 // Adiciona o evento de change para o tipo
@@ -204,11 +204,16 @@ document.getElementById('type').addEventListener('change', function() {
     document.getElementById('filter-form').submit();
 });
 
-// Atualiza os tipos quando a página carrega (apenas uma vez)
+// Atualiza os tipos quando a página carrega (apenas se houver uma cidade selecionada)
 document.addEventListener('DOMContentLoaded', function() {
     const citySelect = document.getElementById('city');
-    logDebug('Página carregada, cidade inicial', citySelect.value);
-    updateTypes(citySelect.value);
+    const currentCity = citySelect.value;
+    
+    // Só atualiza os tipos se houver uma cidade selecionada diferente de 'Todas'
+    if (currentCity && currentCity !== 'Todas') {
+        logDebug('Página carregada, cidade inicial', currentCity);
+        updateTypes(currentCity);
+    }
     
     // Adiciona botão para mostrar/esconder debug
     const debugToggle = document.createElement('button');
@@ -217,11 +222,7 @@ document.addEventListener('DOMContentLoaded', function() {
     debugToggle.onclick = function(e) {
         e.preventDefault();
         const debugInfo = document.getElementById('debug-info');
-        if (debugInfo.style.display === 'none') {
-            debugInfo.style.display = 'block';
-        } else {
-            debugInfo.style.display = 'none';
-        }
+        debugInfo.style.display = debugInfo.style.display === 'none' ? 'block' : 'none';
     };
     document.querySelector('.card-body').appendChild(debugToggle);
 });
