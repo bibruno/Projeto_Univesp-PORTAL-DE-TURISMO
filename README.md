@@ -31,10 +31,12 @@ Um portal web desenvolvido em Django para explorar pontos turísticos do interio
    * Django 5.2  
    * Python 3.x  
    * SQLite (banco de dados)
+   * Django ORM (Object-Relational Mapping)
 * **Frontend**  
    * HTML5  
    * CSS3  
    * JavaScript  
+   * Fetch API (para filtros dinâmicos)
    * Bootstrap 5.3  
    * Bootstrap Icons
 * **Deploy**
@@ -155,9 +157,34 @@ Projeto_Univesp-PORTAL-DE-TURISMO/
 └── README.md
 ```
 
+## 🏗️ Arquitetura do Sistema
+
+### Modelos de Dados
+
+* **Type**: Define os tipos de pontos turísticos (ex: Museu, Parque)
+* **TouristSpot**: Representa os pontos turísticos, com relacionamento many-to-many com Type
+* **CityType**: (Legado) Originalmente usado para armazenar tipos disponíveis por cidade
+
+### API e Endpoints
+
+* **`/`**: Página principal com listagem de pontos turísticos e filtros
+* **`/statistics/`**: Página de estatísticas
+* **`/api/types-for-city/`**: Endpoint AJAX que retorna os tipos disponíveis para uma cidade específica
+
+### Sistema de Filtros em Cascata
+
+O sistema de filtros em cascata funciona através de uma combinação de Django e JavaScript:
+
+1. Quando uma cidade é selecionada, um pedido AJAX é enviado para `/api/types-for-city/`
+2. O backend filtra os tipos que existem naquela cidade específica
+3. O frontend atualiza o dropdown de tipos com as opções retornadas
+4. Os filtros mantêm seu estado durante a navegação de páginas
+
 ## 🎯 Comandos Disponíveis
 
 * `import_spots`: Importa pontos turísticos de um arquivo CSV
+  * Opção `--clear`: Limpa os dados existentes antes de importar (opcional)
+  * Ignora registros duplicados por default
 * `populate_city_types`: Popula a tabela de tipos por cidade
 * `list_cities_types`: Lista todas as cidades e seus respectivos tipos
 
@@ -166,7 +193,8 @@ Projeto_Univesp-PORTAL-DE-TURISMO/
 1. Acesse a página inicial em `http://localhost:8000/` (local) ou `https://turismo-interior.onrender.com/` (produção)
 2. Use os filtros para encontrar pontos turísticos:  
    * Selecione uma cidade  
-   * Escolha um tipo (a lista se atualiza baseado na cidade)
+   * Observe como o dropdown de tipos é atualizado automaticamente
+   * Escolha um tipo para refinar sua busca
 3. Navegue entre as páginas usando a paginação
 4. Clique em "Ver no Maps" para ver a localização no Google Maps
 5. Acesse as estatísticas em `/statistics/`
@@ -186,14 +214,26 @@ O arquivo CSV deve conter as seguintes colunas:
 ## ⚠️ Solução de Problemas
 
 ### Filtros não funcionam corretamente
-- Certifique-se de que o comando `populate_city_types` foi executado
-- Verifique se a tabela `CityType` foi populada corretamente
-- Os tipos devem estar associados às cidades corretas
+- Verifique se o JavaScript está habilitado no navegador
+- Inspecione o console do navegador para erros
+- O endpoint `/api/types-for-city/` deve retornar um array JSON com os tipos disponíveis
+- A consulta SQL usa `Type.objects.filter(touristspot__city=city)` para obter os tipos por cidade
 
 ### Erro no Deploy
 - Verifique os logs no painel do Render.com
 - Confirme que os caminhos no `render.yaml` estão corretos
-- Garanta que todos os comandos necessários estão no `buildCommand`
+- O comando `import_spots` agora ignora registros duplicados automaticamente
+
+### Dados Faltantes
+- Certifique-se de usar o CSV correto com todos os campos necessários
+- Verifique as permissões de acesso ao arquivo CSV
+- Os tipos devem estar separados por vírgula no campo "Tipos"
+
+## 🔄 Atualizações Recentes
+
+* **Filtros em Cascata**: Correção do sistema de filtros para mostrar corretamente os tipos disponíveis por cidade
+* **Importação Robusta**: Melhoria no comando `import_spots` para lidar com registros duplicados
+* **Interface Otimizada**: Adição de feedback visual durante o carregamento dos filtros
 
 ## 🤝 Contribuindo
 
