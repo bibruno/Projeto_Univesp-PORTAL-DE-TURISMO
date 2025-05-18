@@ -1,7 +1,17 @@
 from django.core.management.base import BaseCommand
-from pontos_turisticos.models import TouristSpot
-import json
 import os
+import csv
+from pontos_turisticos.models import TouristSpot, Type
+
+def clean_number(value):
+    """Remove pontos extras de números e converte para float."""
+    if not value:
+        return 0.0
+    # Remove todos os pontos exceto o último
+    parts = value.rsplit('.', 1)
+    if len(parts) == 2:
+        return float(parts[0].replace('.', '') + '.' + parts[1])
+    return float(value.replace('.', ''))
 
 class Command(BaseCommand):
     help = 'Import initial data for tourist spots'
@@ -10,49 +20,57 @@ class Command(BaseCommand):
         try:
             self.stdout.write('Starting data import...')
             
-            # Criar pontos turísticos
-            spots = [
-                {
-                    'name': 'Parque Ibirapuera',
-                    'description': 'Um dos principais parques urbanos de São Paulo',
-                    'city': 'São Paulo',
-                    'address': 'Av. Pedro Álvares Cabral'
-                },
-                {
-                    'name': 'Lagoa do Taquaral',
-                    'description': 'Parque municipal com lagoa e área de lazer',
-                    'city': 'Campinas',
-                    'address': 'Av. Dr. Heitor Penteado'
-                },
-                {
-                    'name': 'Praia do Gonzaga',
-                    'description': 'Uma das principais praias de Santos',
-                    'city': 'Santos',
-                    'address': 'Av. Ana Costa'
-                },
-                {
-                    'name': 'Morro do Elefante',
-                    'description': 'Mirante com vista panorâmica de Campos do Jordão',
-                    'city': 'Campos do Jordão',
-                    'address': 'Av. Pedro Paulo'
-                }
-            ]
-
-            for spot_data in spots:
-                obj, created = TouristSpot.objects.get_or_create(
-                    name=spot_data['name'],
-                    defaults={
-                        'description': spot_data['description'],
-                        'city': spot_data['city'],
-                        'address': spot_data['address']
-                    }
-                )
-                if created:
-                    self.stdout.write(f'Created tourist spot: {spot_data["name"]}')
-                else:
-                    self.stdout.write(f'Tourist spot already exists: {spot_data["name"]}')
-
-            self.stdout.write(self.style.SUCCESS('Initial data imported successfully'))
+            csv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'Banco', 'pontos_turisticos_traduzido.csv')
+            
+            # Primeiro, vamos criar todos os tipos únicos
+            types_set = set()
+            with open(csv_path, encoding='utf-8') as csvfile:
+                reader = csv.DictReader(csvfile)
+                for row in reader:
+                    types = row['Tipos'].split(',')
+                    types_set.update(type_name.strip() for type_name in types if type_name.strip())
+            
+            # Criar os tipos no banco de dados
+            types_dict = {}
+            for type_name in types_set:
+                type_obj, created = Type.objects.get_or_create(name=type_name)
+                types_dict[type_name] = type_obj
+            
+            self.stdout.write(f'Tipos criados: {len(types_dict)}')
+            
+            # Agora vamos criar os pontos turísticos
+            with open(csv_path, encoding='utf-8') as csvfile:
+                reader = csv.DictReader(csvfile)
+                count = 0
+                for row in reader:
+                    try:
+                        # Criar o ponto turístico
+                        spot = TouristSpot.objects.create(
+                            name=row['Nome'],
+                            address=row['Endereço'],
+                            city=row['Cidade'],
+                            rating=clean_number(row['Avaliação'].replace(',', '.')) if row['Avaliação'] else 0.0,
+                            latitude=clean_number(row['Latitude']),
+                            longitude=clean_number(row['Longitude']),
+                            place_id=row['Place_ID']
+                        )
+                        
+                        # Adicionar os tipos
+                        types = row['Tipos'].split(',')
+                        for type_name in types:
+                            type_name = type_name.strip()
+                            if type_name in types_dict:
+                                spot.types.add(types_dict[type_name])
+                        
+                        count += 1
+                        if count % 100 == 0:
+                            self.stdout.write(f'Importados {count} pontos turísticos...')
+                    except Exception as e:
+                        self.stdout.write(self.style.ERROR(f'Erro ao importar linha {count + 1}: {e}'))
+                        self.stdout.write(self.style.ERROR(f'Dados da linha: {row}'))
+                        continue
+            
+            self.stdout.write(self.style.SUCCESS(f'Importação concluída! {count} pontos turísticos importados.'))
             
         except Exception as e:
             self.stdout.write(self.style.ERROR(f'Error importing data: {str(e)}'))

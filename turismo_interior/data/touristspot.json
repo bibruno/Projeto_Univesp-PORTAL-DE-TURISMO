@@ -1,0 +1,12 @@
+[
+  {
+    "model": "pontos_turisticos.touristspot",
+    "pk": 1,
+    "fields": {
+      "name": "Museu do Ipiranga",
+      "description": "Museu histórico em São Paulo.",
+      "type": 1,
+      "city": 1
+    }
+  }
+] 

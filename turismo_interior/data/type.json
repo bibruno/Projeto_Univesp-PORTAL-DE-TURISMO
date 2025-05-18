@@ -1,0 +1,9 @@
+[
+  {
+    "model": "pontos_turisticos.type",
+    "pk": 1,
+    "fields": {
+      "name": "Museu"
+    }
+  }
+] 

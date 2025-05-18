@@ -1,0 +1,10 @@
+[
+  {
+    "model": "pontos_turisticos.city",
+    "pk": 1,
+    "fields": {
+      "name": "São Paulo",
+      "city_type": 1
+    }
+  }
+] 

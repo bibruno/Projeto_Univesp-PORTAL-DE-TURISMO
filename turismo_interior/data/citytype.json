@@ -1,0 +1,9 @@
+[
+  {
+    "model": "pontos_turisticos.citytype",
+    "pk": 1,
+    "fields": {
+      "name": "Capital"
+    }
+  }
+] 
