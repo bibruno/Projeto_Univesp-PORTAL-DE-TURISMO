@@ -12,7 +12,7 @@ class TouristSpot(models.Model):
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     city = models.CharField(max_length=100)
-    address = models.TextField()
+    address = models.TextField(blank=True)
     rating = models.FloatField(null=True, blank=True)
     place_id = models.CharField(max_length=100, unique=True, null=True, blank=True)
     image = models.ImageField(upload_to='pontos_turisticos/', null=True, blank=True)
