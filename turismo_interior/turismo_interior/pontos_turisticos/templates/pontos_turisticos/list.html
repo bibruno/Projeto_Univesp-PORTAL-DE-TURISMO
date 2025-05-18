@@ -112,27 +112,57 @@ function debounce(func, wait) {
     };
 }
 
+// Função para mostrar feedback visual
+function showLoading(show) {
+    const typeSelect = document.getElementById('type');
+    if (show) {
+        typeSelect.disabled = true;
+        typeSelect.innerHTML = '<option value="">Carregando...</option>';
+    } else {
+        typeSelect.disabled = false;
+    }
+}
+
 // Função para atualizar os tipos quando a cidade é alterada
 function updateTypes(city) {
     const typeSelect = document.getElementById('type');
-    typeSelect.innerHTML = '<option value="Todos">Todos</option>';
+    showLoading(true);
     
     if (city === 'Todas') {
+        typeSelect.innerHTML = '<option value="Todos">Todos</option>';
+        showLoading(false);
         return;
     }
     
     fetch(`/api/types-for-city/?city=${encodeURIComponent(city)}`)
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Erro ao buscar tipos');
+            }
+            return response.json();
+        })
         .then(types => {
-            types.forEach(type => {
-                const option = document.createElement('option');
-                option.value = type;
-                option.textContent = type;
-                typeSelect.appendChild(option);
-            });
+            typeSelect.innerHTML = '<option value="Todos">Todos</option>';
+            
+            if (types && types.length > 0) {
+                types.forEach(type => {
+                    if (type) {
+                        const option = document.createElement('option');
+                        option.value = type;
+                        option.textContent = type;
+                        typeSelect.appendChild(option);
+                    }
+                });
+            } else {
+                typeSelect.innerHTML = '<option value="Todos">Nenhum tipo encontrado</option>';
+            }
         })
         .catch(error => {
             console.error('Erro ao buscar tipos:', error);
+            typeSelect.innerHTML = '<option value="Todos">Erro ao carregar tipos</option>';
+        })
+        .finally(() => {
+            showLoading(false);
         });
 }
 
@@ -140,6 +170,7 @@ function updateTypes(city) {
 document.addEventListener('DOMContentLoaded', function() {
     const citySelect = document.getElementById('city');
     const typeSelect = document.getElementById('type');
+    const filterForm = document.getElementById('filter-form');
     
     // Atualizar tipos quando a cidade é alterada
     citySelect.addEventListener('change', function() {
@@ -152,7 +183,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Atualizar a página quando os filtros são alterados
-    const filterForm = document.getElementById('filter-form');
     const debouncedSubmit = debounce(() => {
         filterForm.submit();
     }, 300);
