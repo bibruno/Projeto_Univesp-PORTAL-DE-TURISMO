@@ -16,29 +16,25 @@ class Command(BaseCommand):
                     'name': 'Parque Ibirapuera',
                     'description': 'Um dos principais parques urbanos de São Paulo',
                     'city': 'São Paulo',
-                    'address': 'Av. Pedro Álvares Cabral',
-                    'image': 'pontos_turisticos/ibirapuera.jpg'
+                    'address': 'Av. Pedro Álvares Cabral'
                 },
                 {
                     'name': 'Lagoa do Taquaral',
                     'description': 'Parque municipal com lagoa e área de lazer',
                     'city': 'Campinas',
-                    'address': 'Av. Dr. Heitor Penteado',
-                    'image': 'pontos_turisticos/taquaral.jpg'
+                    'address': 'Av. Dr. Heitor Penteado'
                 },
                 {
                     'name': 'Praia do Gonzaga',
                     'description': 'Uma das principais praias de Santos',
                     'city': 'Santos',
-                    'address': 'Av. Ana Costa',
-                    'image': 'pontos_turisticos/gonzaga.jpg'
+                    'address': 'Av. Ana Costa'
                 },
                 {
                     'name': 'Morro do Elefante',
                     'description': 'Mirante com vista panorâmica de Campos do Jordão',
                     'city': 'Campos do Jordão',
-                    'address': 'Av. Pedro Paulo',
-                    'image': 'pontos_turisticos/elefante.jpg'
+                    'address': 'Av. Pedro Paulo'
                 }
             ]
 
@@ -48,8 +44,7 @@ class Command(BaseCommand):
                     defaults={
                         'description': spot_data['description'],
                         'city': spot_data['city'],
-                        'address': spot_data['address'],
-                        'image': spot_data['image']
+                        'address': spot_data['address']
                     }
                 )
                 if created:
