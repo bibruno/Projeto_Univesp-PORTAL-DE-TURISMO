@@ -143,6 +143,26 @@ services:
   3. Para cada cidade, calcula os tipos e suas contagens
   4. Cria novos registros otimizados para consulta
 
+* **keep_alive**: Mantém o site ativo no Render.com
+  ```bash
+  python keep_alive.py
+  ```
+  Este script:
+  1. Faz requisições periódicas ao site a cada 14 minutos
+  2. Evita que a instância gratuita do Render.com entre em hibernação
+  3. Registra logs de todas as requisições
+  4. Pode ser executado em segundo plano em um servidor
+
+  Para executar em segundo plano no Windows:
+  ```bash
+  pythonw keep_alive.py
+  ```
+
+  Para executar em segundo plano no Linux:
+  ```bash
+  nohup python keep_alive.py &
+  ```
+
 ## 🔍 Sistema de Filtro em Cascata
 
 ### Backend (views.py)
