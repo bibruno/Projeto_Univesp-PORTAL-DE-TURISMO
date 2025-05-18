@@ -127,7 +127,7 @@ def get_types_for_city(request):
             types = Type.objects.values_list('name', flat=True).distinct()
         else:
             city_name = city.replace(', SP', '')
-            city_types = CityTypes.objects.filter(city_name__icontains=city_name)
+            city_types = CityTypes.objects.filter(city__icontains=city_name)
             
             if city_types.exists():
                 types = city_types.values_list('type_name', flat=True).distinct()
