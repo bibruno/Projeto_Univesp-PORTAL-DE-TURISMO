@@ -9,28 +9,44 @@ Um portal web desenvolvido em Django para explorar pontos turísticos do interio
    * Paginação (9 itens por página)  
    * Filtros dinâmicos por cidade e tipo  
    * Integração com Google Maps
+
+* **Sistema de Filtro em Cascata**
+   * Atualização dinâmica dos tipos disponíveis por cidade
+   * Sistema de fallback em 3 níveis:
+     1. Busca exata na tabela de cache
+     2. Busca parcial com correspondência parcial
+     3. Busca direta nos pontos turísticos
+   * Debounce no frontend para otimização
+   * Manutenção automática do cache
+   * Logging detalhado para diagnóstico
+   * Tratamento inteligente de nomes de cidade (com/sem ", SP")
+
 * **Sistema de Cache de Tipos por Cidade**
    * Tabela `CityTypes` para armazenamento eficiente
    * Atualização automática via comando `update_city_types`
    * Contagem de pontos turísticos por tipo em cada cidade
    * Índices otimizados para consulta rápida
+
 * **Filtros Inteligentes**  
-   * Filtro por cidade com suporte a variações de nome (ex: "Cidade" ou "Cidade, SP")
+   * Filtro por cidade com suporte a variações de nome
    * Busca case-insensitive para maior flexibilidade
-   * Filtro de tipos que se atualiza automaticamente baseado na cidade selecionada
-   * Sistema de fallback para busca de tipos quando não há correspondência exata
+   * Filtro de tipos que se atualiza automaticamente
+   * Sistema de fallback para busca de tipos
    * Manutenção dos filtros durante a navegação
+
 * **Estatísticas**  
    * Total de pontos turísticos  
    * Total de cidades  
    * Média de avaliações  
    * Top 10 cidades com mais pontos turísticos  
    * Distribuição por tipo
+
 * **Interface Responsiva**  
    * Design moderno com Bootstrap  
    * Cards com efeito hover  
    * Badges para tipos  
    * Layout adaptável para diferentes dispositivos
+
 * **Debugging Avançado**  
    * Painel de debug embutido na interface
    * Logs detalhados de requisições AJAX
@@ -94,7 +110,12 @@ python manage.py migrate
 python manage.py import_spots ../../Banco/pontos_turisticos_traduzido.csv
 ```
 
-6. Inicie o servidor:
+6. Atualize o cache de tipos:
+```bash
+python manage.py update_city_types
+```
+
+7. Inicie o servidor:
 ```bash
 python manage.py runserver
 ```
@@ -130,49 +151,6 @@ services:
         value: false
 ```
 
-## 🔍 Sistema de Filtros
-
-O sistema de filtros foi aprimorado para lidar com diversos cenários e melhorar a experiência do usuário:
-
-### Filtro por Cidade
-* Suporta cidades com ou sem o sufixo ", SP"
-* Busca case-insensitive usando `icontains`
-* Mantém a seleção durante a navegação entre páginas
-
-### Filtro por Tipo
-* Atualização dinâmica baseada na cidade selecionada
-* Sistema de fallback para busca mais flexível:
-  1. Tenta correspondência exata com a cidade
-  2. Se não encontrar, remove o sufixo ", SP"
-  3. Se ainda não encontrar, usa apenas a primeira palavra da cidade
-* Evita duplicação de tipos no dropdown
-* Mantém a seleção ao navegar entre páginas
-
-### Otimizações de Performance
-* Debounce nas chamadas de API
-* Carregamento seletivo de tipos
-* Cache de consultas usando `select_related` e `prefetch_related`
-
-## 🔄 Últimas Atualizações
-
-* **Nova Tabela CityTypes**: Implementação de tabela otimizada para armazenar tipos por cidade
-* **Sistema de Cache de Tipos**: Melhoria na performance da busca de tipos por cidade
-* **Atualização Automática**: Sistema atualiza automaticamente os tipos quando necessário
-* **Melhor Diagnóstico**: Logs detalhados para facilitar a identificação de problemas
-* **Otimização de Consultas**: Índices adicionados para melhor performance
-
-## 🗃️ Estrutura do Banco de Dados
-
-### Tabelas Principais
-* **TouristSpot**: Armazena os pontos turísticos
-* **Type**: Armazena os tipos de pontos turísticos
-* **CityTypes**: Nova tabela que mantém um cache dos tipos por cidade
-
-### Índices e Otimizações
-* Índice na coluna `city` do TouristSpot
-* Índices compostos na tabela CityTypes
-* Constraint unique para evitar duplicatas
-
 ## 🔧 Comandos de Manutenção
 
 * **import_spots**: Importa pontos turísticos do CSV
@@ -189,6 +167,65 @@ O sistema de filtros foi aprimorado para lidar com diversos cenários e melhorar
   2. Obtém todas as cidades do sistema
   3. Para cada cidade, calcula os tipos e suas contagens
   4. Cria novos registros otimizados para consulta
+
+## 🔍 Sistema de Filtro em Cascata
+
+### Backend (views.py)
+```python
+def get_types_for_city(request):
+    city = request.GET.get('city', '')
+    
+    if not city or city == 'Todas':
+        # Retorna todos os tipos se nenhuma cidade selecionada
+        types = Type.objects.values_list('name', flat=True).distinct()
+    else:
+        # Remove sufixo ", SP" se existir
+        city_name = city.replace(', SP', '')
+        
+        # Sistema de fallback em 3 níveis
+        city_types = CityTypes.objects.filter(city__iexact=city_name)
+        if not city_types.exists():
+            city_types = CityTypes.objects.filter(city__icontains=city_name)
+        
+        if city_types.exists():
+            types = city_types.values_list('type_name', flat=True).distinct()
+        else:
+            types = Type.objects.filter(
+                touristspot__city__icontains=city_name
+            ).values_list('name', flat=True).distinct()
+```
+
+### Frontend (JavaScript)
+```javascript
+function updateTypes(city) {
+    const typeSelect = document.getElementById('type');
+    const currentType = typeSelect.value;
+    
+    fetch(`/api/types-for-city/?city=${encodeURIComponent(city)}`)
+        .then(response => response.json())
+        .then(types => {
+            types.forEach(type => {
+                if (type) {
+                    const option = document.createElement('option');
+                    option.value = type;
+                    option.textContent = type;
+                    typeSelect.appendChild(option);
+                }
+            });
+            
+            if (currentType && types.includes(currentType)) {
+                typeSelect.value = currentType;
+            }
+        });
+}
+
+// Evento com debounce
+document.getElementById('city').addEventListener('change', 
+    debounce(function() {
+        updateTypes(this.value);
+    }, 300)
+);
+```
 
 ## ⚠️ Solução de Problemas
 
@@ -209,6 +246,12 @@ O sistema de filtros foi aprimorado para lidar com diversos cenários e melhorar
 * As consultas são otimizadas com índices nas colunas `city` e `type_name`
 * O sistema atualiza automaticamente o cache quando necessário
 * Fallback para busca direta caso o cache esteja desatualizado
+
+### Logs e Debugging
+* Painel de debug na interface mostra detalhes das chamadas
+* Logs do backend registram todas as operações
+* Sistema de fallback registra cada nível de busca
+* Contadores de performance para diagnóstico
 
 ## 📝 Contribuindo
 
