@@ -117,11 +117,13 @@ def get_types_for_city(request):
     print(f"Buscando tipos para a cidade: {city}")  # Debug
     
     if city == 'Todas':
-        # Se for 'Todas', retorna todos os tipos únicos da tabela CityType
-        types = CityType.objects.values_list('type', flat=True).distinct()
+        # Se for 'Todas', retorna todos os tipos disponíveis 
+        types = Type.objects.values_list('name', flat=True).distinct()
     else:
-        # Para uma cidade específica, busca os tipos diretamente da tabela CityType
-        types = CityType.objects.filter(city=city).values_list('type', flat=True)
+        # Para uma cidade específica, busca os tipos dos pontos turísticos desta cidade
+        types = Type.objects.filter(
+            touristspot__city=city
+        ).values_list('name', flat=True).distinct()
     
     # Converte para lista e remove valores None
     types_list = list(filter(None, types))
