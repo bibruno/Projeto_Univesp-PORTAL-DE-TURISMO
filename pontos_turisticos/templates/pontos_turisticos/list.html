@@ -121,7 +121,7 @@ function updateTypes(city) {
     typeSelect.innerHTML = '<option value="Todos">Todos</option>';
     
     // Busca os tipos da cidade selecionada
-    fetch(`/pontos_turisticos/api/types-for-city/?city=${encodeURIComponent(city)}`)
+    fetch(`/api/types-for-city/?city=${encodeURIComponent(city)}`)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Erro ao buscar tipos');

@@ -148,7 +148,7 @@ function updateTypes(city) {
     // Log da cidade selecionada
     logDebug('Cidade selecionada', city);
     
-    const apiUrl = `/pontos_turisticos/api/types-for-city/?city=${encodeURIComponent(city)}`;
+    const apiUrl = `/api/types-for-city/?city=${encodeURIComponent(city)}`;
     logDebug('Chamando API', apiUrl);
     
     // Busca os tipos da cidade selecionada
