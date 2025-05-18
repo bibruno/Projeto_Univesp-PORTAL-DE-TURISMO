@@ -154,12 +154,3 @@ O arquivo CSV deve conter as seguintes colunas:
 
 Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
 
-## ✨ Melhorias Futuras
-
-- [ ] Implementar autenticação de usuários
-- [ ] Adicionar sistema de avaliações
-- [ ] Criar área administrativa
-- [ ] Implementar busca por texto
-- [ ] Adicionar mais estatísticas e gráficos
-- [ ] Implementar cache para melhor performance
-- [ ] Adicionar testes automatizados 
