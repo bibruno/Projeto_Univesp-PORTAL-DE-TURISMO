@@ -15,6 +15,6 @@ services:
       - key: WEB_CONCURRENCY
         value: 4
       - key: ALLOWED_HOSTS
-        value: .onrender.com
+        value: .onrender.com,localhost,127.0.0.1
       - key: DEBUG
         value: "False" 

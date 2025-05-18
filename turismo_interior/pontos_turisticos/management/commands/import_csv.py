@@ -30,35 +30,42 @@ class Command(BaseCommand):
             reader = csv.DictReader(csvfile)
             count = 0
             for row in reader:
-                # Criar ou obter cidade
-                city_name = row['Cidade'].strip()
-                city, _ = City.objects.get_or_create(
-                    name=city_name,
-                    defaults={'type': default_city_type}
-                )
-                
-                # Criar ou atualizar ponto turístico
-                spot, created = TouristSpot.objects.get_or_create(
-                    place_id=row['Place_ID'] if 'Place_ID' in row else None,
-                    defaults={
-                        'name': row['Nome'].strip(),
-                        'description': row['Endereço'].strip(),
-                        'city': city_name,  # Modelo espera string, não objeto
-                        'address': row['Endereço'].strip(),
-                        'rating': clean_number(row['Avaliação']) if 'Avaliação' in row else None,
-                        'latitude': row['Latitude'].replace('.', '', row['Latitude'].count('.')-1) if 'Latitude' in row else '',
-                        'longitude': row['Longitude'].replace('.', '', row['Longitude'].count('.')-1) if 'Longitude' in row else ''
-                    }
-                )
-                
-                # Adicionar tipos
-                tipos = [t.strip() for t in row['Tipos'].split(',') if t.strip()]
-                for tipo in tipos:
-                    type_obj, _ = Type.objects.get_or_create(name=tipo)
-                    spot.types.add(type_obj)
-                
-                count += 1
-                if count % 100 == 0:
-                    self.stdout.write(f'Processados {count} pontos turísticos...')
+                try:
+                    # Criar ou obter cidade
+                    city_name = row['Cidade'].strip()
+                    city, _ = City.objects.get_or_create(
+                        name=city_name,
+                        defaults={'type': default_city_type}
+                    )
+                    
+                    # Criar ou atualizar ponto turístico
+                    place_id = row['Place_ID'] if 'Place_ID' in row else None
+                    if place_id:
+                        spot, created = TouristSpot.objects.update_or_create(
+                            place_id=place_id,
+                            defaults={
+                                'name': row['Nome'].strip(),
+                                'description': row['Endereço'].strip(),
+                                'city': city_name,  # Modelo espera string, não objeto
+                                'address': row['Endereço'].strip(),
+                                'rating': clean_number(row['Avaliação']) if 'Avaliação' in row else None,
+                                'latitude': row['Latitude'].replace('.', '', row['Latitude'].count('.')-1) if 'Latitude' in row else '',
+                                'longitude': row['Longitude'].replace('.', '', row['Longitude'].count('.')-1) if 'Longitude' in row else ''
+                            }
+                        )
+                        
+                        # Limpar tipos existentes e adicionar os novos
+                        spot.types.clear()
+                        tipos = [t.strip() for t in row['Tipos'].split(',') if t.strip()]
+                        for tipo in tipos:
+                            type_obj, _ = Type.objects.get_or_create(name=tipo)
+                            spot.types.add(type_obj)
+                        
+                        count += 1
+                        if count % 100 == 0:
+                            self.stdout.write(f'Processados {count} pontos turísticos...')
+                except Exception as e:
+                    self.stdout.write(self.style.ERROR(f'Erro ao processar linha {count + 1}: {str(e)}'))
+                    self.stdout.write(f'Dados da linha: {row}')
             
             self.stdout.write(self.style.SUCCESS(f'Processados {count} pontos turísticos do CSV.')) 
