@@ -22,19 +22,24 @@ class TouristSpot(models.Model):
     def __str__(self):
         return self.name
 
-class CityType(models.Model):
-    city = models.CharField(max_length=100)
-    type = models.CharField(max_length=100)
+    class Meta:
+        indexes = [
+            models.Index(fields=['city']),
+        ]
+
+class CityTypes(models.Model):
+    city = models.CharField(max_length=100, db_index=True)
+    type_name = models.CharField(max_length=100)
+    count = models.IntegerField(default=0)
     
     class Meta:
-        unique_together = ('city', 'type')
+        unique_together = ('city', 'type_name')
+        verbose_name = 'City Type'
+        verbose_name_plural = 'City Types'
+        indexes = [
+            models.Index(fields=['city']),
+            models.Index(fields=['type_name']),
+        ]
     
     def __str__(self):
-        return f"{self.city} - {self.type}"
-
-class City(models.Model):
-    name = models.CharField(max_length=100, unique=True)
-    city_type = models.ForeignKey(CityType, on_delete=models.CASCADE, related_name='cities')
-        
-    def __str__(self):
-        return self.name
+        return f"{self.city} - {self.type_name} ({self.count})"

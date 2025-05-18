@@ -8,6 +8,7 @@ services:
       python manage.py collectstatic --noinput
       python manage.py migrate
       python manage.py import_spots ../../Banco/pontos_turisticos_traduzido.csv
+      python manage.py update_city_types
     startCommand: |
       cd turismo_interior/turismo_interior
       gunicorn turismo_interior.wsgi:application

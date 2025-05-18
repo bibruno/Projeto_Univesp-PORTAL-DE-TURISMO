@@ -148,27 +148,54 @@ O sistema de filtros foi aprimorado para lidar com diversos cenários e melhorar
 * Carregamento seletivo de tipos
 * Cache de consultas usando `select_related` e `prefetch_related`
 
-## ⚠️ Solução de Problemas
-
-### Filtros não funcionam como esperado
-* **Cidade não encontrada**: Verifique se está usando o nome exato da cidade. O sistema suporta "Cidade" ou "Cidade, SP"
-* **Tipos não aparecem**: Use o painel de debug para verificar a resposta da API
-* **Duplicação de tipos**: Limpe o cache do navegador e recarregue a página
-* **Filtros não persistem**: Verifique se os parâmetros da URL estão corretos
-
-### Erros comuns
-* **404 na API**: Verifique se a URL base está correta
-* **Tipos não atualizam**: Verifique se o JavaScript está habilitado
-* **Cidade não filtra**: Verifique o formato do nome da cidade
-* **Paginação quebra filtros**: Verifique se os parâmetros de URL estão sendo mantidos
-
 ## 🔄 Últimas Atualizações
 
-* **Correção de Filtros**: Implementação de busca mais flexível para cidades e tipos
-* **Otimização de Performance**: Redução de chamadas à API e melhor cache
-* **Debug Aprimorado**: Novo painel de debug com mais informações
-* **Correção de Duplicação**: Resolução do problema de duplicação de tipos no dropdown
-* **Busca Inteligente**: Sistema de fallback para encontrar tipos quando não há correspondência exata
+* **Nova Tabela CityTypes**: Implementação de tabela otimizada para armazenar tipos por cidade
+* **Sistema de Cache de Tipos**: Melhoria na performance da busca de tipos por cidade
+* **Atualização Automática**: Sistema atualiza automaticamente os tipos quando necessário
+* **Melhor Diagnóstico**: Logs detalhados para facilitar a identificação de problemas
+* **Otimização de Consultas**: Índices adicionados para melhor performance
+
+## 🗃️ Estrutura do Banco de Dados
+
+### Tabelas Principais
+* **TouristSpot**: Armazena os pontos turísticos
+* **Type**: Armazena os tipos de pontos turísticos
+* **CityTypes**: Nova tabela que mantém um cache dos tipos por cidade
+
+### Índices e Otimizações
+* Índice na coluna `city` do TouristSpot
+* Índices compostos na tabela CityTypes
+* Constraint unique para evitar duplicatas
+
+## 🔧 Comandos de Manutenção
+
+* **import_spots**: Importa pontos turísticos do CSV
+  ```bash
+  python manage.py import_spots caminho/do/arquivo.csv
+  ```
+
+* **update_city_types**: Atualiza a tabela de tipos por cidade
+  ```bash
+  python manage.py update_city_types
+  ```
+
+## ⚠️ Solução de Problemas
+
+### Tipos não aparecem para uma cidade
+1. Verifique se há pontos turísticos cadastrados para a cidade
+2. Execute o comando `update_city_types` para reconstruir o cache
+3. Verifique os logs para mais detalhes do problema
+
+### Erro na importação de dados
+1. Verifique se o arquivo CSV está no formato correto
+2. Execute a importação com `--verbosity 2` para mais detalhes
+3. Após a importação, execute `update_city_types`
+
+### Performance dos Filtros
+* A tabela CityTypes mantém um cache dos tipos por cidade
+* As consultas são otimizadas com índices
+* O sistema atualiza automaticamente o cache quando necessário
 
 ## 📝 Contribuindo
 
