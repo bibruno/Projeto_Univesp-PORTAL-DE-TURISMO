@@ -14,6 +14,8 @@ Portal web para visualização e busca de pontos turísticos do interior de São
    * Filtro por tipo de ponto turístico
    * Filtros dinâmicos em cascata
    * Atualização em tempo real
+   * Cache de tipos por cidade para melhor performance
+   * Feedback visual durante o carregamento
 
 * **Estatísticas**  
    * Total de pontos turísticos
@@ -153,7 +155,7 @@ def get_types_for_city(request):
             types = Type.objects.values_list('name', flat=True).distinct()
         else:
             city_name = city.replace(', SP', '')
-            city_types = CityTypes.objects.filter(city_name__icontains=city_name)
+            city_types = CityTypes.objects.filter(city__icontains=city_name)
             
             if city_types.exists():
                 types = city_types.values_list('type_name', flat=True).distinct()
@@ -180,33 +182,45 @@ def get_types_for_city(request):
 ```javascript
 function updateTypes(city) {
     const typeSelect = document.getElementById('type');
-    typeSelect.innerHTML = '<option value="Todos">Todos</option>';
+    showLoading(true);
     
     if (city === 'Todas') {
+        typeSelect.innerHTML = '<option value="Todos">Todos</option>';
+        showLoading(false);
         return;
     }
     
     fetch(`/api/types-for-city/?city=${encodeURIComponent(city)}`)
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Erro ao buscar tipos');
+            }
+            return response.json();
+        })
         .then(types => {
-            types.forEach(type => {
-                const option = document.createElement('option');
-                option.value = type;
-                option.textContent = type;
-                typeSelect.appendChild(option);
-            });
+            typeSelect.innerHTML = '<option value="Todos">Todos</option>';
+            
+            if (types && types.length > 0) {
+                types.forEach(type => {
+                    if (type) {
+                        const option = document.createElement('option');
+                        option.value = type;
+                        option.textContent = type;
+                        typeSelect.appendChild(option);
+                    }
+                });
+            } else {
+                typeSelect.innerHTML = '<option value="Todos">Nenhum tipo encontrado</option>';
+            }
         })
         .catch(error => {
             console.error('Erro ao buscar tipos:', error);
+            typeSelect.innerHTML = '<option value="Todos">Erro ao carregar tipos</option>';
+        })
+        .finally(() => {
+            showLoading(false);
         });
 }
-
-// Evento com debounce
-document.getElementById('city').addEventListener('change', 
-    debounce(function() {
-        updateTypes(this.value);
-    }, 300)
-);
 ```
 
 ## ⚠️ Solução de Problemas
