@@ -37,18 +37,6 @@
     </div>
 </div>
 
-<!-- Debug Info -->
-<div class="row mb-4" id="debug-info" style="display: none;">
-    <div class="col-12">
-        <div class="card bg-light">
-            <div class="card-body">
-                <h5 class="card-title">Informações de Debug</h5>
-                <div id="debug-content"></div>
-            </div>
-        </div>
-    </div>
-</div>
-
 <div class="row">
     {% for spot in spots %}
     <div class="col-md-4 mb-4">
@@ -111,20 +99,6 @@
 
 {% block extra_js %}
 <script>
-// Função para debug
-function logDebug(message, data) {
-    console.log(message, data);
-    
-    // Mostra o painel de debug
-    document.getElementById('debug-info').style.display = 'block';
-    
-    // Adiciona a mensagem ao painel
-    const debugContent = document.getElementById('debug-content');
-    const entry = document.createElement('div');
-    entry.innerHTML = `<strong>${message}</strong>: ${JSON.stringify(data)}`;
-    debugContent.appendChild(entry);
-}
-
 // Função para debounce
 function debounce(func, wait) {
     let timeout;
@@ -138,82 +112,53 @@ function debounce(func, wait) {
     };
 }
 
-// Função para atualizar os tipos
+// Função para atualizar os tipos quando a cidade é alterada
 function updateTypes(city) {
-    if (!city) {
-        logDebug('Cidade inválida', city);
-        return;
-    }
-
     const typeSelect = document.getElementById('type');
-    const currentType = typeSelect.value;
-    
-    // Limpa o select de tipos
     typeSelect.innerHTML = '<option value="Todos">Todos</option>';
     
-    // Log da cidade selecionada
-    logDebug('Cidade selecionada', city);
+    if (city === 'Todas') {
+        return;
+    }
     
-    const apiUrl = `/api/types-for-city/?city=${encodeURIComponent(city)}`;
-    logDebug('Chamando API', apiUrl);
-    
-    // Busca os tipos da cidade selecionada
-    fetch(apiUrl)
-        .then(response => {
-            logDebug('Status da resposta', response.status);
-            if (!response.ok) {
-                throw new Error(`Erro ao buscar tipos: ${response.status}`);
-            }
-            return response.json();
-        })
+    fetch(`/get_types_for_city/?city=${encodeURIComponent(city)}`)
+        .then(response => response.json())
         .then(types => {
-            logDebug('Tipos recebidos', types);
-            
-            if (types && types.length > 0) {
-                // Adiciona os tipos ao select
-                types.forEach(type => {
-                    if (type) {
-                        const option = document.createElement('option');
-                        option.value = type;
-                        option.textContent = type;
-                        typeSelect.appendChild(option);
-                    }
-                });
-                
-                // Tenta restaurar o tipo selecionado anteriormente
-                if (currentType && types.includes(currentType)) {
-                    typeSelect.value = currentType;
-                }
-            } else {
-                logDebug('Nenhum tipo encontrado para esta cidade', city);
-            }
+            types.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                typeSelect.appendChild(option);
+            });
         })
         .catch(error => {
-            logDebug('Erro na chamada', error.message);
-            console.error('Erro:', error);
+            console.error('Erro ao buscar tipos:', error);
         });
 }
 
-// Adiciona o evento de change com debounce
-document.getElementById('city').addEventListener('change', debounce(function() {
-    const city = this.value;
-    if (city) {
-        updateTypes(city);
-    }
-}, 300));
-
-// Adiciona o evento de change para o tipo
-document.getElementById('type').addEventListener('change', function() {
-    document.getElementById('filter-form').submit();
-});
-
-// Atualiza os tipos quando a página carrega
+// Adicionar event listeners
 document.addEventListener('DOMContentLoaded', function() {
     const citySelect = document.getElementById('city');
-    const city = citySelect.value;
-    if (city && city !== 'undefined') {
-        updateTypes(city);
+    const typeSelect = document.getElementById('type');
+    
+    // Atualizar tipos quando a cidade é alterada
+    citySelect.addEventListener('change', function() {
+        updateTypes(this.value);
+    });
+    
+    // Atualizar tipos quando a página carrega
+    if (citySelect.value !== 'Todas') {
+        updateTypes(citySelect.value);
     }
+    
+    // Atualizar a página quando os filtros são alterados
+    const filterForm = document.getElementById('filter-form');
+    const debouncedSubmit = debounce(() => {
+        filterForm.submit();
+    }, 300);
+    
+    citySelect.addEventListener('change', debouncedSubmit);
+    typeSelect.addEventListener('change', debouncedSubmit);
 });
 </script>
 {% endblock %}
