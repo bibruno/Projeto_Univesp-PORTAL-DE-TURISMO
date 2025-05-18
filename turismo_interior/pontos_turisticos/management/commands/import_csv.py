@@ -17,55 +17,73 @@ class Command(BaseCommand):
     help = 'Importa pontos turísticos do CSV para o banco de dados'
 
     def handle(self, *args, **options):
-        # Criar CityType padrão se não existir
+        csv_file = 'Banco/pontos_turisticos_traduzido.csv'
+        
+        if not os.path.exists(csv_file):
+            self.stdout.write(self.style.ERROR(f'Arquivo {csv_file} não encontrado'))
+            return
+
+        # Criar tipo de cidade padrão se não existir
         default_city_type, _ = CityType.objects.get_or_create(name='Padrão')
         
-        # Caminho relativo ao diretório do projeto
-        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-        csv_path = os.path.join(base_dir, 'Banco', 'pontos_turisticos_traduzido.csv')
-        
-        self.stdout.write(f'Tentando abrir arquivo em: {csv_path}')
-        
-        with open(csv_path, encoding='utf-8') as csvfile:
-            reader = csv.DictReader(csvfile)
-            count = 0
-            for row in reader:
+        with open(csv_file, 'r', encoding='utf-8') as file:
+            reader = csv.DictReader(file)
+            total_rows = sum(1 for row in reader)
+            file.seek(0)
+            next(reader)  # Pular o cabeçalho
+            
+            imported_count = 0
+            error_count = 0
+            
+            for i, row in enumerate(reader, start=2):
                 try:
-                    # Criar ou obter cidade
-                    city_name = row['Cidade'].strip()
+                    # Limpar e formatar os dados
+                    name = row['Nome'].strip()
+                    address = row['Endereço'].strip()
+                    city_name = row['Cidade'].replace(', SP', '').strip()
+                    rating = clean_number(row['Avaliação'])
+                    types = [t.strip() for t in row['Tipos'].split(',')]
+                    latitude = clean_number(row['Latitude'])
+                    longitude = clean_number(row['Longitude'])
+                    place_id = row['Place_ID'].strip()
+
+                    # Criar ou obter a cidade
                     city, _ = City.objects.get_or_create(
                         name=city_name,
                         defaults={'type': default_city_type}
                     )
+
+                    # Criar ou atualizar o ponto turístico
+                    spot, created = TouristSpot.objects.update_or_create(
+                        place_id=place_id,
+                        defaults={
+                            'name': name,
+                            'description': f'Ponto turístico em {city_name}',
+                            'city': city,
+                            'address': address,
+                            'rating': rating,
+                            'latitude': latitude,
+                            'longitude': longitude
+                        }
+                    )
+
+                    # Limpar tipos existentes e adicionar os novos
+                    spot.types.clear()
+                    for type_name in types:
+                        type_obj, _ = Type.objects.get_or_create(name=type_name)
+                        spot.types.add(type_obj)
+
+                    imported_count += 1
                     
-                    # Criar ou atualizar ponto turístico
-                    place_id = row['Place_ID'] if 'Place_ID' in row else None
-                    if place_id:
-                        spot, created = TouristSpot.objects.update_or_create(
-                            place_id=place_id,
-                            defaults={
-                                'name': row['Nome'].strip(),
-                                'description': row['Endereço'].strip(),
-                                'city': city_name,  # Modelo espera string, não objeto
-                                'address': row['Endereço'].strip(),
-                                'rating': clean_number(row['Avaliação']) if 'Avaliação' in row else None,
-                                'latitude': row['Latitude'].replace('.', '', row['Latitude'].count('.')-1) if 'Latitude' in row else '',
-                                'longitude': row['Longitude'].replace('.', '', row['Longitude'].count('.')-1) if 'Longitude' in row else ''
-                            }
-                        )
+                    if imported_count % 100 == 0:
+                        self.stdout.write(f'Importados {imported_count} pontos turísticos...')
                         
-                        # Limpar tipos existentes e adicionar os novos
-                        spot.types.clear()
-                        tipos = [t.strip() for t in row['Tipos'].split(',') if t.strip()]
-                        for tipo in tipos:
-                            type_obj, _ = Type.objects.get_or_create(name=tipo)
-                            spot.types.add(type_obj)
-                        
-                        count += 1
-                        if count % 100 == 0:
-                            self.stdout.write(f'Processados {count} pontos turísticos...')
                 except Exception as e:
-                    self.stdout.write(self.style.ERROR(f'Erro ao processar linha {count + 1}: {str(e)}'))
-                    self.stdout.write(f'Dados da linha: {row}')
-            
-            self.stdout.write(self.style.SUCCESS(f'Processados {count} pontos turísticos do CSV.')) 
+                    error_count += 1
+                    self.stdout.write(self.style.ERROR(f'Erro ao importar linha {i}: {str(e)}'))
+                    self.stdout.write(self.style.ERROR(f'Dados da linha: {row}'))
+                    continue
+
+            self.stdout.write(self.style.SUCCESS(f'Importação concluída! {imported_count} pontos turísticos importados.'))
+            if error_count > 0:
+                self.stdout.write(self.style.WARNING(f'Foram encontrados {error_count} erros durante a importação.')) 
